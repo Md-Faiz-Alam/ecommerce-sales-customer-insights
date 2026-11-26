@@ -38,12 +38,12 @@ SELECT COUNT(DISTINCT customer_unique_id) AS total_customers
 FROM customers;
 
 -- Average Order Value (AOV)
-SELECT 
+SELECT
     SUM(payment_value) / COUNT(DISTINCT order_id) AS avg_order_value
 FROM payments;
 
 -- Customer Lifetime Value (CLV) Analysis
-SELECT 
+SELECT
     c.customer_unique_id,
     COUNT(DISTINCT o.order_id) AS total_orders,
     SUM(p.payment_value) AS total_spent,
@@ -56,10 +56,10 @@ ORDER BY total_spent DESC
 LIMIT 30;
 
 -- Customer Segmentation
-SELECT 
+SELECT
     c.customer_unique_id,
     SUM(p.payment_value) AS total_spent,
-    CASE 
+    CASE
         WHEN SUM(p.payment_value) > 1000 THEN 'High Value'
         WHEN SUM(p.payment_value) BETWEEN 500 AND 1000 THEN 'Medium Value'
         ELSE 'Low Value'
@@ -70,7 +70,7 @@ JOIN payments p ON o.order_id = p.order_id
 GROUP BY c.customer_unique_id;
 
 -- Product Analysis
-SELECT 
+SELECT
     pr.product_category_name,
     SUM(oi.price) AS revenue
 FROM order_items oi
@@ -80,7 +80,7 @@ ORDER BY revenue DESC
 LIMIT 10;
 
 -- Low Performing Products (hidden problem)
-SELECT 
+SELECT
     product_id,
     SUM(price) AS revenue
 FROM order_items
@@ -89,88 +89,18 @@ ORDER BY revenue ASC
 LIMIT 10;
 
 -- Delivery Analysis
-SELECT 
+SELECT
     AVG(DATEDIFF(order_delivered_customer_date, order_purchase_timestamp)) AS avg_delivery_days
 FROM orders
 WHERE order_delivered_customer_date IS NOT NULL;
 
 -- Late Delivery percent
-SELECT 
+SELECT
     COUNT(*) * 100.0 / (SELECT COUNT(*) FROM orders WHERE order_status = 'delivered') AS late_delivery_percentage
 FROM orders
 WHERE order_delivered_customer_date > order_estimated_delivery_date;
 
 -- Review Analysis (Customer Satisfaction)
-SELECT 
+SELECT
     AVG(review_score) AS avg_rating
 FROM reviews;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

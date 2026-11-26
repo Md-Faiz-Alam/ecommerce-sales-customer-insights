@@ -8,6 +8,8 @@
   .\tasks.ps1 pipeline   # clean -> validate -> parquet -> DuckDB -> data quality report
   .\tasks.ps1 train      # train ML models -> models/, reports/model_report.md
   .\tasks.ps1 export     # star-schema CSVs for Power BI -> data/powerbi/
+  .\tasks.ps1 export-app # refresh the Streamlit app's data + models -> app/
+  .\tasks.ps1 app        # run the Streamlit app locally (http://localhost:8501)
   .\tasks.ps1 notebooks  # re-execute analysis notebooks (refreshes reports/figures)
   .\tasks.ps1 test       # run unit tests
   .\tasks.ps1 lint       # ruff lint + format check
@@ -31,13 +33,15 @@ switch ($Task) {
     "pipeline" { Invoke-Py -m ecom.pipeline }
     "train"    { Invoke-Py -m ecom.models.train }
     "export"   { Invoke-Py -m ecom.export_bi }
+    "export-app" { Invoke-Py -m ecom.export_app }
+    "app"      { Invoke-Py -m streamlit run (Join-Path $PSScriptRoot "app\streamlit_app.py") }
     "notebooks" {
         Get-ChildItem (Join-Path $PSScriptRoot "notebooks\*.ipynb") | ForEach-Object {
             Invoke-Py -m jupyter nbconvert --to notebook --execute --inplace $_.FullName
         }
     }
     "test"     { Invoke-Py -m pytest }
-    "lint"     { Invoke-Py -m ruff check src tests scripts; Invoke-Py -m ruff format --check src tests scripts }
+    "lint"     { Invoke-Py -m ruff check src tests scripts app notebooks; Invoke-Py -m ruff format --check src tests scripts app }
     "all"      { & $PSCommandPath data; & $PSCommandPath pipeline; & $PSCommandPath test }
     default    { Get-Help $PSCommandPath -Detailed }
 }

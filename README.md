@@ -8,6 +8,10 @@ machine-learning models that turn the findings into decisions.
 > **4.29★** for on-time orders, and only **3.1%** of customers ever buy a second time.
 > Delivery reliability is the biggest lever for satisfaction and retention.
 
+**Interactive app** (Streamlit): 4 analytics pages plus a delivery-promise simulator, a review-risk checker with
+per-order SHAP explanations, and a demand forecast. Run it with `.\tasks.ps1 app` · <!-- LIVE_APP_LINK: replace with
+[Open the live app](https://<your-app>.streamlit.app) after deploying (see app/README.md) -->
+
 <p align="center"><img src="reports/figures/delay_vs_negative_reviews.png" width="760"/></p>
 
 ## Key findings (R$15.4M revenue, 99K orders, Jan 2017 – Aug 2018)
@@ -92,6 +96,7 @@ Each follows **Question → Method → Finding → Recommendation**, with statis
 .\tasks.ps1 pipeline   # clean -> validate -> Parquet -> DuckDB warehouse -> quality report
 .\tasks.ps1 train      # train the 3 ML models -> reports/model_report.md (~20 s)
 .\tasks.ps1 export     # star-schema CSVs for Power BI -> data/powerbi/
+.\tasks.ps1 app        # run the Streamlit app (http://localhost:8501)
 .\tasks.ps1 notebooks  # re-run the analysis notebooks (refreshes reports/figures)
 .\tasks.ps1 test       # unit tests
 ```
@@ -167,6 +172,7 @@ The `.pbix` file is attached to the GitHub release.
 ├── src/ecom/            # package: pipeline (clean, validate, warehouse), features, chart style
 │   └── models/          # delivery_time, review_risk, forecast, train
 ├── notebooks/           # 01–05 analysis, 06–08 machine learning
+├── app/                 # Streamlit app (self-contained: data + text models, ~6 MB)
 ├── scripts/             # download_data.py
 ├── sql/                 # DuckDB: 01_marts (star schema), 02_analysis (views), tests
 ├── docs/                # metric definitions
@@ -185,14 +191,15 @@ The `.pbix` file is attached to the GitHub release.
 - [x] SQL marts (star schema) + cohort retention, RFM, Pareto, seller scorecard, SQL data tests
 - [x] Analysis notebooks: delivery → satisfaction (with statistical tests), retention, seller and geography
 - [x] ML: delivery-time quantile model, negative-review risk model (LightGBM + SHAP), demand forecast
-- [ ] Live Streamlit app
+- [x] Streamlit app with ML simulators + serving-parity tests
+- [ ] Deploy the app to Streamlit Community Cloud and link it here
 - [x] Power BI: star-schema export, DAX measures, theme, build guide
 - [ ] Power BI: rebuild the .pbix from the guide + new screenshots
 - [ ] Executive summary
 
 ## Tech stack
 
-Python 3.13 · pandas 3 · DuckDB (SQL) · SciPy · scikit-learn · LightGBM · SHAP · statsmodels · matplotlib · pandera · pytest · ruff · Power BI
+Python 3.13 · pandas 3 · DuckDB (SQL) · SciPy · scikit-learn · LightGBM · SHAP · statsmodels · Streamlit · Plotly · matplotlib · pandera · pytest · ruff · Power BI
 
 ## Limitations
 

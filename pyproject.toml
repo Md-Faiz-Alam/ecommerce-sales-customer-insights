@@ -43,6 +43,8 @@ select = ["E", "F", "I", "B", "UP", "SIM", "PD", "NPY"]
 # Notebooks are analysis narratives: long chart titles, one-line axis tweaks and
 # reshaping with .pivot()/.unstack() are idiomatic there. src/ stays fully strict.
 "*.ipynb" = ["E501", "E702", "PD010", "B905"]
+# Streamlit pages are mostly user-facing copy and chart config; src/ stays fully strict.
+"app/**" = ["E501"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

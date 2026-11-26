@@ -50,3 +50,6 @@ kaggle.json
 *.zip
 *.tar
 *.gz
+
+# Local AI-assistant tooling
+.claude/

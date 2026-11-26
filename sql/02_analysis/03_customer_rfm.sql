@@ -1,6 +1,7 @@
 -- RFM segmentation (Recency, Frequency, Monetary) on delivered orders.
 -- Frequency uses fixed buckets, not NTILE: ~97% of customers have exactly one order, so
--- quintiles of frequency would be meaningless. R and M use quintiles (NTILE(5)).
+-- quintiles of frequency would be meaningless. R and M use quintiles (NTILE(5)); ties are broken
+-- by customer_unique_id so segment counts are reproducible run to run.
 CREATE OR REPLACE VIEW analysis.customer_rfm AS
 WITH base AS (
     SELECT
@@ -19,9 +20,11 @@ scored AS (
     SELECT
         b.*,
         date_diff('day', b.last_purchase_date, r.as_of_date)                      AS recency_days,
-        ntile(5) OVER (ORDER BY date_diff('day', b.last_purchase_date, r.as_of_date) DESC) AS r_score,
+        ntile(5) OVER (
+            ORDER BY date_diff('day', b.last_purchase_date, r.as_of_date) DESC, b.customer_unique_id
+        )                                                                         AS r_score,
         CASE WHEN b.frequency >= 3 THEN 5 WHEN b.frequency = 2 THEN 4 ELSE 1 END  AS f_score,
-        ntile(5) OVER (ORDER BY b.monetary)                                       AS m_score
+        ntile(5) OVER (ORDER BY b.monetary, b.customer_unique_id)                 AS m_score
     FROM base AS b
     CROSS JOIN ref AS r
 )

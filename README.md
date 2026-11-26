@@ -1,26 +1,58 @@
 # E-commerce Sales & Customer Insights (Olist, Brazil)
 
 End-to-end analytics on **~100K real orders** from Olist, a Brazilian marketplace (2017–2018):
-a reproducible Python + SQL pipeline, a DuckDB warehouse, a Power BI dashboard, and (in progress)
-retention analysis and machine-learning models.
+a reproducible Python + SQL pipeline, a DuckDB warehouse, statistically tested analysis notebooks,
+and a Power BI dashboard. Machine-learning models are next.
 
 > **Core finding:** orders that arrive after the promised date average **2.27★**, versus
 > **4.29★** for on-time orders, and only **3.1%** of customers ever buy a second time.
 > Delivery reliability is the biggest lever for satisfaction and retention.
 
+<p align="center"><img src="reports/figures/delay_vs_negative_reviews.png" width="760"/></p>
+
 ## Key findings (R$15.4M revenue, 99K orders, Jan 2017 – Aug 2018)
 
 | # | Finding | Evidence |
 |---|---|---|
-| 1 | **Even a short delay destroys ratings.** Negative reviews (1–2★) go from **9%** for early orders to **32%** at 1–3 days late and **68%** at 4–7 days late | `analysis.delivery_vs_review` |
-| 2 | **Retention is close to zero.** Only 3.1% of customers reorder; month-1 retention averages **0.5%**. 30% of "repeat" orders are same-day split baskets, not loyalty | `analysis.cohort_retention`, `repeat_purchase_summary` |
-| 3 | **Peak season breaks logistics.** Black Friday (Nov 2017) lifted orders 63% month over month, and the late rate jumped from 4% to **12%**. Feb–Mar 2018 hit **14–19%** late, with ratings falling to 3.75★ | `analysis.kpi_monthly` |
-| 4 | **Delivery promises are padded.** 74% of orders arrive 8+ days early. A shorter, accurate promise could improve conversion without hurting ratings | `analysis.delivery_vs_review` |
-| 5 | **Revenue is concentrated, and at risk.** 164 high-volume sellers with above-median negative reviews (19%) generate **R$5.2M (34%)** of revenue | `analysis.seller_scorecard` |
-| 6 | **The North-East is underserved.** AL, MA, SE, CE: 14–21% late, 16–21% of order value spent on freight, 1,650–2,200 km average shipping distance | `analysis.state_delivery` |
-| 7 | 18 of 74 categories (A class) make up **81%** of revenue | `analysis.category_pareto` |
+| 1 | **Even a short delay destroys ratings.** Late orders are **6.7× as likely** to get 1–2★ (62% vs 9%; Mann-Whitney p < 0.001, rank-biserial r = 0.64). The effect holds in every state (state-adjusted relative risk 6.5), so geography doesn't explain it. Lateness causes **~28% of all negative reviews** | [Notebook 04](notebooks/04_delivery_vs_satisfaction.ipynb) |
+| 2 | **Retention is close to zero.** Only 3.1% of customers reorder; no monthly cohort ever retains more than 0.8%. 30% of "repeat" orders are same-day split baskets, not loyalty. A late first order cuts the repeat rate by a further 26% (p = 0.002) | [Notebook 03](notebooks/03_customer_retention.ipynb) |
+| 3 | **Peak season breaks logistics.** Black Friday (Nov 2017) lifted orders 63% month over month, and the late rate jumped from 4% to **12%**. Feb–Mar 2018 hit **14–19%** late, with ratings falling to 3.75★ | [Notebook 02](notebooks/02_business_overview.ipynb) |
+| 4 | **Promises are padded, but a blanket cut backfires.** Olist promises ~24 days for a ~12.5-day delivery, yet early delivery earns no extra rating. Cutting every promise by 3 days would raise the late rate from 6.8% to 11.3%. The fix is **route-level** promises: same-state orders take 7.9 days, cross-state 15.2 | [Notebook 04](notebooks/04_delivery_vs_satisfaction.ipynb) |
+| 5 | **Revenue is concentrated, and at risk.** The top 10% of sellers make 66% of revenue. 164 high-volume sellers with above-median negative reviews (19%; nearly double the late rate of top sellers) generate **R$5.2M (34%)** | [Notebook 05](notebooks/05_sellers_and_geography.ipynb) |
+| 6 | **The North-East is underserved.** 60% of sellers are in São Paulo; each extra 1,000 km adds ~6 delivery days. AL, MA, SE, CE: 14–21% late, 16–21% of order value spent on freight | [Notebook 05](notebooks/05_sellers_and_geography.ipynb) |
+| 7 | **Value sits in lapsing customers.** "At-risk big spenders" (13.7K customers, last seen ~13 months ago) hold 27% of revenue, which makes them the first win-back target | [Notebook 03](notebooks/03_customer_retention.ipynb) |
 
 All metric definitions: [`docs/metrics.md`](docs/metrics.md).
+
+### Recommendations
+
+1. **Predict delivery time per route** and set promises from it: short where safe, long where risky (model in progress).
+2. **Day-0 delay alert:** notify customers and offer a small voucher *before* the day-1–3 rating cliff. Measure with an A/B test.
+3. **Peak-season playbook** for November and Feb–Mar: carrier capacity, and longer promises on risky routes.
+4. **Seller SLAs** for the 164 high-volume, low-quality sellers (34% of revenue).
+5. **Win-back campaign** for at-risk big spenders, plus a "second order within 30 days" onboarding flow (the median gap to a second order is 28 days).
+6. **North-East seller recruitment / fulfilment hub** to cut distance, freight and lateness together.
+
+---
+
+## Analysis notebooks
+
+Each follows **Question → Method → Finding → Recommendation**, with statistical tests where a claim needs one.
+
+| Notebook | Question | Methods |
+|---|---|---|
+| [01 Data quality](notebooks/01_data_quality.ipynb) | Can the raw data be trusted? | Missingness patterns, audit trail, contract validation |
+| [02 Business overview](notebooks/02_business_overview.ipynb) | Growth, seasonality, revenue mix | MoM/YoY, moving averages, Pareto |
+| [03 Customer retention](notebooks/03_customer_retention.ipynb) | Do customers come back? Who should we target? | Cohort analysis, chi-square, RFM segmentation |
+| [04 Delivery → satisfaction](notebooks/04_delivery_vs_satisfaction.ipynb) | How much does lateness hurt, and what should we do? | Dose-response, Mann-Whitney U, relative risk + 95% CI, Mantel-Haenszel adjustment, what-if simulation |
+| [05 Sellers & geography](notebooks/05_sellers_and_geography.ipynb) | Which sellers and regions need action? | Concentration curve, volume × quality quadrant, distance analysis |
+
+<p align="center">
+  <img src="reports/figures/late_effect_by_state.png" width="49%"/>
+  <img src="reports/figures/cohort_retention.png" width="49%"/>
+  <img src="reports/figures/seller_quadrants.png" width="49%"/>
+  <img src="reports/figures/promise_tradeoff.png" width="49%"/>
+</p>
 
 ---
 
@@ -30,6 +62,7 @@ All metric definitions: [`docs/metrics.md`](docs/metrics.md).
 .\tasks.ps1 setup      # create .venv, install pinned dependencies
 .\tasks.ps1 data       # download raw Olist CSVs from Kaggle into data/raw/
 .\tasks.ps1 pipeline   # clean -> validate -> Parquet -> DuckDB warehouse -> quality report
+.\tasks.ps1 notebooks  # re-run the analysis notebooks (refreshes reports/figures)
 .\tasks.ps1 test       # unit tests
 ```
 
@@ -83,12 +116,13 @@ The full audit trail is in [`reports/data_quality_report.md`](reports/data_quali
 ## Project structure
 
 ```
-├── src/ecom/            # pipeline package (config, ingest, clean, validate, warehouse, quality)
+├── src/ecom/            # package: pipeline (clean, validate, warehouse), db access, chart style
+├── notebooks/           # 01–05 analysis notebooks
 ├── scripts/             # download_data.py
 ├── sql/                 # DuckDB: 01_marts (star schema), 02_analysis (views), tests
 ├── docs/                # metric definitions
 ├── tests/               # pytest: cleaning rules, data contracts, SQL test runner
-├── reports/             # generated data-quality report, figures
+├── reports/             # generated data-quality report, figures/
 ├── dashboard/           # Power BI .pbix
 ├── images/              # dashboard screenshots
 ├── data/                # raw + processed (git-ignored; rebuilt by the pipeline)
@@ -100,14 +134,14 @@ The full audit trail is in [`reports/data_quality_report.md`](reports/data_quali
 
 - [x] Reproducible pipeline, data contracts, data-quality report, tests
 - [x] SQL marts (star schema) + cohort retention, RFM, Pareto, seller scorecard, SQL data tests
-- [ ] Analysis notebooks: delivery → satisfaction (with statistical tests), retention, seller and geography
+- [x] Analysis notebooks: delivery → satisfaction (with statistical tests), retention, seller and geography
 - [ ] ML: negative-review risk model (LightGBM + SHAP), customer segmentation, demand forecast
 - [ ] Live Streamlit app
 - [ ] Power BI fixes + executive summary
 
 ## Tech stack
 
-Python 3.13 · pandas 3 · DuckDB · pandera · pytest · ruff · Power BI
+Python 3.13 · pandas 3 · DuckDB (SQL) · SciPy · matplotlib · pandera · pytest · ruff · Power BI
 
 ## Data
 

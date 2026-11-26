@@ -6,6 +6,7 @@
   .\tasks.ps1 setup      # create .venv and install everything
   .\tasks.ps1 data       # download raw Olist CSVs from Kaggle
   .\tasks.ps1 pipeline   # clean -> validate -> parquet -> DuckDB -> data quality report
+  .\tasks.ps1 notebooks  # re-execute analysis notebooks (refreshes reports/figures)
   .\tasks.ps1 test       # run unit tests
   .\tasks.ps1 lint       # ruff lint + format check
   .\tasks.ps1 all        # data + pipeline + test
@@ -26,6 +27,11 @@ switch ($Task) {
     }
     "data"     { Invoke-Py (Join-Path $PSScriptRoot "scripts\download_data.py") }
     "pipeline" { Invoke-Py -m ecom.pipeline }
+    "notebooks" {
+        Get-ChildItem (Join-Path $PSScriptRoot "notebooks\*.ipynb") | ForEach-Object {
+            Invoke-Py -m jupyter nbconvert --to notebook --execute --inplace $_.FullName
+        }
+    }
     "test"     { Invoke-Py -m pytest }
     "lint"     { Invoke-Py -m ruff check src tests scripts; Invoke-Py -m ruff format --check src tests scripts }
     "all"      { & $PSCommandPath data; & $PSCommandPath pipeline; & $PSCommandPath test }

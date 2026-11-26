@@ -7,6 +7,9 @@ duckdb==2.0.1
 pandera[pandas]==0.36.0
 kagglehub==1.0.3
 
+# Statistics
+scipy==1.18.1
+
 # Visualisation
 matplotlib==3.11.2
 seaborn==0.13.2

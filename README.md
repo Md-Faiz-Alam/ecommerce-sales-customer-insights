@@ -91,6 +91,7 @@ Each follows **Question → Method → Finding → Recommendation**, with statis
 .\tasks.ps1 data       # download raw Olist CSVs from Kaggle into data/raw/
 .\tasks.ps1 pipeline   # clean -> validate -> Parquet -> DuckDB warehouse -> quality report
 .\tasks.ps1 train      # train the 3 ML models -> reports/model_report.md (~20 s)
+.\tasks.ps1 export     # star-schema CSVs for Power BI -> data/powerbi/
 .\tasks.ps1 notebooks  # re-run the analysis notebooks (refreshes reports/figures)
 .\tasks.ps1 test       # unit tests
 ```
@@ -136,9 +137,27 @@ The full audit trail is in [`reports/data_quality_report.md`](reports/data_quali
 
 ## Dashboard (Power BI)
 
-<p align="center"><img src="images/dashboard.gif" width="800"/></p>
+Four pages on a star schema exported from the warehouse (`.\tasks.ps1 export`): **Executive Overview**,
+**Delivery & Satisfaction**, **Customers & Retention** (cohort heatmap, RFM) and **Seller Performance**
+(volume × quality scatter, drill-through), plus an optional ML planning page.
 
-> A Power BI revision is planned: proper date table, MoM measures, BRL currency, and English categories.
+- Marked date table, so MoM/YoY time intelligence is correct and months sort chronologically
+- Revenue measured from the item fact, so category and seller slicers filter it correctly
+- Advanced DAX: `TOPN` + `ADDCOLUMNS` seller concentration, dynamic MoM labels, data-driven date labels
+- Every KPI reconciles to the SQL warehouse (checklist in the guide)
+
+Build spec, DAX and theme: [`dashboard/POWERBI_GUIDE.md`](dashboard/POWERBI_GUIDE.md) ·
+[`measures.dax`](dashboard/measures.dax) · [`olist_theme.json`](dashboard/olist_theme.json)
+
+<!-- After rebuilding, add the new screenshots:
+<p align="center"><img src="images/dashboard.gif" width="800"/></p>
+<p align="center">
+  <img src="images/dashboard_overview.png" width="49%"/>
+  <img src="images/dashboard_delivery.png" width="49%"/>
+</p>
+-->
+
+The `.pbix` file is attached to the GitHub release.
 
 ---
 
@@ -153,7 +172,7 @@ The full audit trail is in [`reports/data_quality_report.md`](reports/data_quali
 ├── docs/                # metric definitions
 ├── tests/               # pytest: cleaning rules, data contracts, SQL runner, leakage, model logic
 ├── reports/             # generated data-quality report, figures/
-├── dashboard/           # Power BI .pbix
+├── dashboard/           # Power BI guide, DAX measures, theme (.pbix in the release)
 ├── images/              # dashboard screenshots
 ├── data/                # raw + processed (git-ignored; rebuilt by the pipeline)
 ├── tasks.ps1            # task runner
@@ -167,7 +186,9 @@ The full audit trail is in [`reports/data_quality_report.md`](reports/data_quali
 - [x] Analysis notebooks: delivery → satisfaction (with statistical tests), retention, seller and geography
 - [x] ML: delivery-time quantile model, negative-review risk model (LightGBM + SHAP), demand forecast
 - [ ] Live Streamlit app
-- [ ] Power BI fixes + executive summary
+- [x] Power BI: star-schema export, DAX measures, theme, build guide
+- [ ] Power BI: rebuild the .pbix from the guide + new screenshots
+- [ ] Executive summary
 
 ## Tech stack
 

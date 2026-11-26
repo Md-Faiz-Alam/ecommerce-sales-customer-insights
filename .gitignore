@@ -18,6 +18,7 @@ env/
 # Data: never committed; rebuild with `.\tasks.ps1 data` + `.\tasks.ps1 pipeline`
 data/raw/*
 data/processed/*
+data/powerbi/
 data/*.duckdb
 data/*.duckdb.wal
 !data/raw/.gitkeep

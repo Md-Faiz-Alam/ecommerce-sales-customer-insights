@@ -6,12 +6,12 @@
   .\tasks.ps1 setup      # create .venv and install everything
   .\tasks.ps1 data       # download raw Olist CSVs from Kaggle
   .\tasks.ps1 pipeline   # clean -> validate -> parquet -> DuckDB -> data quality report
-  .\tasks.ps1 train      # train ML models -> models/, reports/model_report.md
+  .\tasks.ps1 train      # train + evaluate ML models -> reports/model_report.md
   .\tasks.ps1 export     # star-schema CSVs for Power BI -> data/powerbi/
   .\tasks.ps1 export-app # refresh the Streamlit app's data + models -> app/
   .\tasks.ps1 app        # run the Streamlit app locally (http://localhost:8501)
   .\tasks.ps1 notebooks  # re-execute analysis notebooks (refreshes reports/figures)
-  .\tasks.ps1 test       # run unit tests
+  .\tasks.ps1 test       # run all tests with coverage
   .\tasks.ps1 lint       # ruff lint + format check
   .\tasks.ps1 all        # data + pipeline + test
 #>
@@ -29,7 +29,7 @@ switch ($Task) {
         Invoke-Py -m pip install -r (Join-Path $PSScriptRoot "requirements.txt")
         Invoke-Py -m pip install -e $PSScriptRoot --no-deps
     }
-    "data"     { Invoke-Py (Join-Path $PSScriptRoot "scripts\download_data.py") }
+    "data"     { Invoke-Py -m ecom.download }
     "pipeline" { Invoke-Py -m ecom.pipeline }
     "train"    { Invoke-Py -m ecom.models.train }
     "export"   { Invoke-Py -m ecom.export_bi }
@@ -41,7 +41,7 @@ switch ($Task) {
         }
     }
     "test"     { Invoke-Py -m pytest --cov }
-    "lint"     { Invoke-Py -m ruff check src tests scripts app notebooks; Invoke-Py -m ruff format --check src tests scripts app }
+    "lint"     { Invoke-Py -m ruff check src tests app notebooks; Invoke-Py -m ruff format --check src tests app }
     "all"      { & $PSCommandPath data; & $PSCommandPath pipeline; & $PSCommandPath test }
     default    { Get-Help $PSCommandPath -Detailed }
 }

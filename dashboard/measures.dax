@@ -1,158 +1,238 @@
 // =============================================================================
-// Olist Insights: DAX measures
-// Create a measures table first: Home > Enter Data > name it "_Measures" > Load.
-// Then for each block: select _Measures > New measure > paste ONE measure.
-// Definitions match docs/metrics.md. Revenue = items + freight of DELIVERED orders (BRL).
+// Olist Insights: Power BI DAX measures (36)
+// Extracted from the dashboard (Olist_Insights.pbix in this folder).
+//
+// Model: star schema. Date -> Orders <- Customers; Orders -> Order Items <- Products, Sellers.
+// Revenue = items + freight of DELIVERED orders (BRL), summed from Order Items so
+// product and seller filters reach it. Definitions: reports/metrics.md
+//
+// Expected values with no filters (reconciled with the SQL warehouse):
+//   Revenue R$ 15,371,741 | Orders 99,092 | Customers 95,774 | AOV R$ 159.78
+//   Late 6.8% | Avg review 4.09 | Negative reviews by timing 9.0/10.2/12.4/32.1/67.7/79.3%
+//   Top 10% seller revenue share 66.2% | Fix-first sellers 164 (33.9% of revenue)
 // =============================================================================
 
 
+// ----------------------------------------------------------------- KPI cards
+
+Revenue KPI =
+DIVIDE ( [Revenue], 1e6 )
+// format: "R$" 0.0"M"
+
+Total Orders KPI =
+DIVIDE ( [Total Orders], 1e3 )
+// format: 0.0"K"
+
+Total Customers KPI =
+DIVIDE ( [Total Customers], 1e3 )
+// format: 0.0"K"
+
+
 // ----------------------------------------------------------------- Core
+
 Revenue =
 CALCULATE (
     SUM ( 'Order Items'[Item Total] ),
     Orders[Is Delivered] = TRUE ()
 )
-// Format: Currency, custom "R$ #,0" (cards: display units = Millions)
+// format: "R$" #,0
 
-Orders =
+Total Orders =
 COUNTROWS ( Orders )
+// format: #,0
 
 Delivered Orders =
 CALCULATE ( COUNTROWS ( Orders ), Orders[Is Delivered] = TRUE () )
+// format: #,0
 
-Customers =
+Total Customers =
 DISTINCTCOUNT ( Orders[Customer ID] )
+// format: #,0
 
 AOV =
 DIVIDE ( [Revenue], [Delivered Orders] )
-// Format: "R$ #,0.00"
+// format: "R$" #,0.00
 
 Lost Order % =
 DIVIDE (
     CALCULATE ( COUNTROWS ( Orders ), Orders[Status] IN { "canceled", "unavailable" } ),
-    [Orders]
+    [Total Orders]
 )
+// format: 0.0%
 
 
 // ----------------------------------------------------------------- Time intelligence
-// Requires: 'Date' marked as date table, relationship 'Date'[Date] -> Orders[Purchase Date].
 
 Revenue PM =
 CALCULATE ( [Revenue], DATEADD ( 'Date'[Date], -1, MONTH ) )
+// format: "R$" #,0
 
 Revenue MoM % =
 IF (
-    HASONEVALUE ( 'Date'[Month Year] ),          // only meaningful for a single month
+    HASONEVALUE ( 'Date'[Month Year] ),
     DIVIDE ( [Revenue] - [Revenue PM], [Revenue PM] )
 )
+// format: +0.0%;-0.0%;0.0%
 
 Revenue PY =
 CALCULATE ( [Revenue], SAMEPERIODLASTYEAR ( 'Date'[Date] ) )
+// format: "R$" #,0
 
 Revenue YoY % =
 DIVIDE ( [Revenue] - [Revenue PY], [Revenue PY] )
+// format: +0.0%;-0.0%;0.0%
 
 Revenue 3M Avg =
-VAR Last3Months =
+VAR _last3Months =
     DATESINPERIOD ( 'Date'[Date], MAX ( 'Date'[Date] ), -3, MONTH )
 RETURN
     DIVIDE (
-        CALCULATE ( [Revenue], Last3Months ),
-        CALCULATE ( DISTINCTCOUNT ( 'Date'[Month Year] ), Last3Months )
+        CALCULATE ( [Revenue], _last3Months ),
+        CALCULATE ( DISTINCTCOUNT ( 'Date'[Month Year] ), _last3Months )
     )
-
-MoM Label =
-IF (
-    HASONEVALUE ( 'Date'[Month Year] ),
-    FORMAT ( [Revenue MoM %], "+0.0%;-0.0%" ) & " vs previous month",
-    "Select one month for MoM"
-)
-
-Data Range Label =
-VAR FirstDay = CALCULATE ( MIN ( Orders[Purchase Date] ), ALL ( Orders ) )
-VAR LastDay = CALCULATE ( MAX ( Orders[Purchase Date] ), ALL ( Orders ) )
-RETURN
-    "Orders " & FORMAT ( FirstDay, "mmm yyyy" ) & " – " & FORMAT ( LastDay, "mmm yyyy" )
-        & "  ·  BRL  ·  Aug 2018 partial (dataset extraction ends ~21 Aug)"
+// format: "R$" #,0
 
 
-// ----------------------------------------------------------------- Delivery & satisfaction
+// ----------------------------------------------------------------- Delivery
+
 Late Orders =
 CALCULATE ( COUNTROWS ( Orders ), Orders[Is Late] = TRUE () )
+// format: #,0
 
 Late % =
 DIVIDE ( [Late Orders], [Delivered Orders] )
+// format: 0.0%
 
 Late % (All States) =
 CALCULATE ( [Late %], ALL ( Orders[Customer State] ) )
-// Use as a constant reference line on the state chart.
+// format: 0.0%
 
-Late % PM =
-CALCULATE ( [Late %], DATEADD ( 'Date'[Date], -1, MONTH ) )
+Late % Above Avg =
+VAR _value = [Late %]
+VAR _national = [Late % (All States)]
+RETURN IF ( _value > _national, _value )
+// format: 0.0%
 
-Late % Change pp =
-IF ( HASONEVALUE ( 'Date'[Month Year] ), ( [Late %] - [Late % PM] ) * 100 )
+Late % At or Below Avg =
+VAR _value = [Late %]
+VAR _national = [Late % (All States)]
+RETURN IF ( _value <= _national, _value )
+// format: 0.0%
 
 Avg Delivery Days =
 CALCULATE ( AVERAGE ( Orders[Delivery Days] ), Orders[Is Delivered] = TRUE () )
+// format: 0.0
 
 Avg Promised Days =
 CALCULATE ( AVERAGE ( Orders[Promised Days] ), Orders[Is Delivered] = TRUE () )
+// format: 0.0
 
 Promise Buffer Days =
 [Avg Promised Days] - [Avg Delivery Days]
+// format: 0.0
 
 Avg Review =
 AVERAGE ( Orders[Review Score] )
+// format: 0.00
 
 Negative Review % =
 DIVIDE (
     CALCULATE ( COUNTROWS ( Orders ), Orders[Is Negative Review] = TRUE () ),
     COUNT ( Orders[Review Score] )
 )
+// format: 0.0%
+
+Negative % Early or On Time =
+IF (
+    SELECTEDVALUE ( Orders[Delivery Timing Sort] ) IN { 1, 2, 3 },
+    [Negative Review %]
+)
+// format: 0.0%
+
+Negative % Late =
+IF (
+    SELECTEDVALUE ( Orders[Delivery Timing Sort] ) IN { 4, 5, 6 },
+    [Negative Review %]
+)
+// format: 0.0%
 
 
 // ----------------------------------------------------------------- Customers
+
 Repeat Customer % =
 DIVIDE (
     CALCULATE ( DISTINCTCOUNT ( Orders[Customer ID] ), Customers[Is Repeat Customer] = TRUE () ),
-    [Customers]
+    [Total Customers]
 )
+// format: 0.0%
+
+Customer Share =
+IF (
+    SELECTEDVALUE ( Customers[RFM Segment] ) <> "No delivered order",
+    DIVIDE (
+        [Total Customers],
+        CALCULATE (
+            [Total Customers],
+            ALL ( Customers[RFM Segment] ),
+            Customers[RFM Segment] <> "No delivered order"
+        )
+    )
+)
+// format: 0.0%
 
 Revenue Share =
 DIVIDE ( [Revenue], CALCULATE ( [Revenue], ALL ( Customers[RFM Segment] ) ) )
+// format: 0.0%
 
-Customer Share =
-DIVIDE ( [Customers], CALCULATE ( [Customers], ALL ( Customers[RFM Segment] ) ) )
-
-Retention Rate =
-AVERAGE ( 'Cohort Retention'[Retention Rate] )
-// One row per cohort x month, so the average is the cell value.
+Retention Rate (M1-12) =
+VAR _month = SELECTEDVALUE ( 'Cohort Retention'[Months Since First Order] )
+RETURN
+    IF ( _month >= 1 && _month <= 12, AVERAGE ( 'Cohort Retention'[Retention Rate] ) )
+// format: 0.00%
 
 
 // ----------------------------------------------------------------- Sellers
+
 Active Sellers =
 CALCULATE ( DISTINCTCOUNT ( 'Order Items'[Seller ID] ), Orders[Is Delivered] = TRUE () )
+// format: #,0
 
 Top 10% Seller Revenue Share =
-VAR SellerRevenue =
+VAR _sellerRevenue =
     FILTER (
         ADDCOLUMNS ( VALUES ( Sellers[Seller ID] ), "@Revenue", [Revenue] ),
         [@Revenue] > 0
     )
-VAR TopCount = ROUNDUP ( COUNTROWS ( SellerRevenue ) * 0.1, 0 )
-VAR TopSellers = TOPN ( TopCount, SellerRevenue, [@Revenue], DESC )
+VAR _topN = ROUNDUP ( COUNTROWS ( _sellerRevenue ) * 0.1, 0 )
+VAR _topSellers = TOPN ( _topN, _sellerRevenue, [@Revenue], DESC )
 RETURN
-    DIVIDE ( SUMX ( TopSellers, [@Revenue] ), SUMX ( SellerRevenue, [@Revenue] ) )
+    DIVIDE ( SUMX ( _topSellers, [@Revenue] ), SUMX ( _sellerRevenue, [@Revenue] ) )
+// format: 0.0%
 
 Fix-First Sellers =
 CALCULATE (
     COUNTROWS ( Sellers ),
     Sellers[Action Quadrant] = "High volume, poor quality: fix first"
 )
+// format: #,0
 
 Fix-First Revenue Share =
 DIVIDE (
     CALCULATE ( [Revenue], Sellers[Action Quadrant] = "High volume, poor quality: fix first" ),
     [Revenue]
 )
+// format: 0.0%
+
+Seller Revenue (rated) =
+CALCULATE (
+    SUM ( Sellers[Revenue (window)] ),
+    KEEPFILTERS ( NOT Sellers[Action Quadrant] IN { "Low volume", "No orders in window" } )
+)
+// format: "R$" #,0
+
+Seller Negative Rate (rated) =
+CALCULATE (
+    AVERAGE ( Sellers[Negative Review Rate] ),
+    KEEPFILTERS ( NOT Sellers[Action Quadrant] IN { "Low volume", "No orders in window" } )
+)
+// format: 0.0%

@@ -15,7 +15,7 @@ machine-learning models that turn the findings into decisions.
 
 **Interactive app** (Streamlit): 4 analytics pages plus a delivery-promise simulator, a review-risk checker with
 per-order SHAP explanations, and a demand forecast. Run it with `.\tasks.ps1 app` · <!-- LIVE_APP_LINK: replace with
-[Open the live app](https://<your-app>.streamlit.app) after deploying (see app/README.md) -->
+[Open the live app](https://<your-app>.streamlit.app) after deploying (see 'Deploy the app' below) -->
 
 <p align="center"><img src="reports/figures/delay_vs_negative_reviews.png" width="760"/></p>
 
@@ -31,7 +31,7 @@ per-order SHAP explanations, and a demand forecast. Run it with `.\tasks.ps1 app
 | 6 | **The North-East is underserved.** 60% of sellers are in São Paulo; each extra 1,000 km adds ~6 delivery days. AL, MA, SE, CE: 14–21% late, 16–21% of order value spent on freight | [Notebook 05](notebooks/05_sellers_and_geography.ipynb) |
 | 7 | **Value sits in lapsing customers.** "At-risk big spenders" (13.7K customers, last seen ~13 months ago) hold 27% of revenue, which makes them the first win-back target | [Notebook 03](notebooks/03_customer_retention.ipynb) |
 
-All metric definitions: [`docs/metrics.md`](docs/metrics.md).
+All metric definitions: [`reports/metrics.md`](reports/metrics.md).
 
 ### Recommendations
 
@@ -147,29 +147,41 @@ The full audit trail is in [`reports/data_quality_report.md`](reports/data_quali
 
 ## Dashboard (Power BI)
 
-Four pages on a star schema exported from the warehouse (`.\tasks.ps1 export`): **Executive Overview**,
-**Delivery & Satisfaction**, **Customers & Retention** (cohort heatmap, RFM) and **Seller Performance**
-(volume × quality scatter, drill-through), plus an optional ML planning page.
+Five pages on a star schema exported from the warehouse (`.\tasks.ps1 export`): **Executive Overview**,
+**Delivery & Satisfaction**, **Customers & Retention** (cohort heatmap, RFM), **Seller Performance**
+(volume × quality scatter, scorecard) and **Planning** (forecast and model results).
 
-- Marked date table, so MoM/YoY time intelligence is correct and months sort chronologically
-- Revenue measured from the item fact, so category and seller slicers filter it correctly
-- Advanced DAX: `TOPN` + `ADDCOLUMNS` seller concentration, dynamic MoM labels, data-driven date labels
-- Every KPI reconciles to the SQL warehouse (checklist in the guide)
+- Marked date table and sort-by columns, so MoM/YoY time intelligence works and months sort chronologically
+- Revenue summed from the item fact, so category and seller slicers filter it correctly
+- 36 DAX measures, including `TOPN` + `ADDCOLUMNS` seller concentration and `DATESINPERIOD` rolling averages
+- Every KPI reconciles to the SQL warehouse (expected values at the top of [`measures.dax`](dashboard/measures.dax))
+- All 36 DAX measures are readable in [`dashboard/measures.dax`](dashboard/measures.dax) without opening Power BI
 
-Build spec, DAX and theme: [`dashboard/POWERBI_GUIDE.md`](dashboard/POWERBI_GUIDE.md) ·
-[`measures.dax`](dashboard/measures.dax) · [`olist_theme.json`](dashboard/olist_theme.json)
+**Open it:** `dashboard/Olist_Insights.pbix` (data included, so it opens directly in Power BI Desktop).
+To reload fresh data: run `.\tasks.ps1 pipeline` and `.\tasks.ps1 export`, update the `DataFolder` parameter
+(Home → Transform data → Edit parameters) if the repo is in another folder, then click **Refresh**.
 
-<!-- After rebuilding, add the new screenshots:
-<p align="center"><img src="images/dashboard.gif" width="800"/></p>
+<!-- SCREENSHOTS: uncomment after saving them to reports/figures/
 <p align="center">
-  <img src="images/dashboard_overview.png" width="49%"/>
-  <img src="images/dashboard_delivery.png" width="49%"/>
+  <img src="reports/figures/dashboard_overview.png" width="49%"/>
+  <img src="reports/figures/dashboard_delivery.png" width="49%"/>
+  <img src="reports/figures/dashboard_customers.png" width="49%"/>
+  <img src="reports/figures/dashboard_sellers.png" width="49%"/>
 </p>
 -->
 
-The `.pbix` file is attached to the GitHub release.
-
 ---
+
+## Deploy the app (free, Streamlit Community Cloud)
+
+The app reads only `app/data` and `app/models` (about 6 MB, committed). Models ship as LightGBM text files,
+and `tests/test_app_parity.py` proves they reproduce the training predictions exactly.
+
+1. [share.streamlit.io](https://share.streamlit.io) → sign in with GitHub → **Create app**
+2. Repository `Md-Faiz-Alam/ecommerce-sales-customer-insights` · branch `main` · main file `app/streamlit_app.py`
+3. **Advanced settings → Python 3.13** → Deploy (dependencies come from `app/requirements.txt`)
+
+Refresh the app's data and models after changing the pipeline: `.	asks.ps1 export-app`.
 
 ## Engineering & testing
 
@@ -191,35 +203,17 @@ The uncovered code is CLI orchestration that runs against the real data, and cha
 ## Project structure
 
 ```
-├── src/ecom/            # package: pipeline (clean, validate, warehouse), features, chart style
-│   └── models/          # delivery_time, review_risk, forecast, train
-├── notebooks/           # 01–05 analysis, 06–08 machine learning
-├── app/                 # Streamlit app (self-contained: data + text models, ~6 MB)
-├── scripts/             # download_data.py
-├── sql/                 # DuckDB: 01_marts (star schema), 02_analysis (views), tests
-├── docs/                # metric definitions
-├── tests/               # 47 tests: e2e pipeline on synthetic data, leakage, parity, app smoke
-├── .github/workflows/   # CI: lint + tests on Python 3.12 / 3.13
-├── reports/             # generated data-quality report, figures/
-├── dashboard/           # Power BI guide, DAX measures, theme (.pbix in the release)
-├── images/              # dashboard screenshots
-├── data/                # raw + processed (git-ignored; rebuilt by the pipeline)
-├── tasks.ps1            # task runner
-└── pyproject.toml       # package + tooling config
+├── sql/          # DuckDB: star-schema marts, analysis views, SQL data tests
+├── notebooks/    # 01–05 analysis, 06–08 machine learning
+├── dashboard/    # Power BI dashboard (Olist_Insights.pbix) + all DAX measures
+├── app/          # Streamlit app (self-contained data + models)
+├── src/ecom/     # Python package: download, clean, validate, warehouse, features, models
+├── tests/        # 47 tests, run by CI (.github/workflows)
+├── reports/      # metric definitions, data-quality and model reports, all figures
+├── tasks.ps1     # one command per step: setup, data, pipeline, train, app, test
+└── pyproject.toml
 ```
-
-## Roadmap
-
-- [x] Reproducible pipeline, data contracts, data-quality report, tests
-- [x] SQL marts (star schema) + cohort retention, RFM, Pareto, seller scorecard, SQL data tests
-- [x] Analysis notebooks: delivery → satisfaction (with statistical tests), retention, seller and geography
-- [x] ML: delivery-time quantile model, negative-review risk model (LightGBM + SHAP), demand forecast
-- [x] Streamlit app with ML simulators + serving-parity tests
-- [ ] Deploy the app to Streamlit Community Cloud and link it here
-- [x] Power BI: star-schema export, DAX measures, theme, build guide
-- [x] CI: lint + 47 tests (e2e on synthetic data, leakage, parity, app smoke) on Python 3.12/3.13
-- [ ] Power BI: rebuild the .pbix from the guide + new screenshots
-- [ ] Executive summary
+`data/` is created locally by the pipeline and never committed.
 
 ## Tech stack
 

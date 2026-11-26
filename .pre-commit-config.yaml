@@ -15,5 +15,6 @@ repos:
     hooks:
       - id: check-added-large-files
         args: [--maxkb=5000]
+        exclude: ^dashboard/Olist_Insights\.pbix$  # the dashboard itself (~17 MB)
       - id: end-of-file-fixer
       - id: trailing-whitespace

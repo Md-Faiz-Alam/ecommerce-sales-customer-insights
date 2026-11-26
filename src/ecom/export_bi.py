@@ -2,9 +2,9 @@
 
 Run:  python -m ecom.export_bi      ->  data/powerbi/*.csv
 
-Design choices (see dashboard/POWERBI_GUIDE.md):
+Design choices:
 - Only the analysis window (Jan 2017 - Aug 2018) is exported, so trends have no fake head/tail.
-- Every metric is defined once (docs/metrics.md); Power BI only aggregates.
+- Every metric is defined once (reports/metrics.md); Power BI only aggregates.
 - RFM segment and seller scorecard are joined onto their dimensions, so slicers just work.
 - Delivery-timing buckets carry a sort column, so charts sort in business order, not A-Z.
 """

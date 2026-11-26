@@ -36,4 +36,4 @@ Query it yourself:
 .venv\Scripts\python.exe -c "import duckdb; print(duckdb.connect('data/warehouse.duckdb').sql('SELECT * FROM analysis.delivery_vs_review'))"
 ```
 
-Metric definitions: [`docs/metrics.md`](../docs/metrics.md).
+Metric definitions: [`reports/metrics.md`](../reports/metrics.md).

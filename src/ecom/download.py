@@ -9,8 +9,8 @@ https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce and extract the CSVs
 into data/raw/.
 
 Usage:
-    python scripts/download_data.py           # skip if all files already exist
-    python scripts/download_data.py --force   # re-download
+    python -m ecom.download           # skip if all files already exist
+    python -m ecom.download --force   # re-download
 """
 
 from __future__ import annotations
@@ -20,19 +20,10 @@ import shutil
 import sys
 from pathlib import Path
 
-RAW_DIR = Path(__file__).resolve().parents[1] / "data" / "raw"
+from ecom.config import RAW_DIR, RAW_FILES
+
 DATASET = "olistbr/brazilian-ecommerce"
-EXPECTED_FILES = [
-    "olist_customers_dataset.csv",
-    "olist_geolocation_dataset.csv",
-    "olist_order_items_dataset.csv",
-    "olist_order_payments_dataset.csv",
-    "olist_order_reviews_dataset.csv",
-    "olist_orders_dataset.csv",
-    "olist_products_dataset.csv",
-    "olist_sellers_dataset.csv",
-    "product_category_name_translation.csv",
-]
+EXPECTED_FILES = list(RAW_FILES.values())
 
 
 def missing_files() -> list[str]:

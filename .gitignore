@@ -10,29 +10,22 @@ dist/
 venv/
 env/
 
-# Tooling caches
+# Tooling caches and coverage
 .pytest_cache/
 .ruff_cache/
 .ipynb_checkpoints/
+.coverage
+coverage.xml
+htmlcov/
 
-# Data: never committed; rebuild with `.\tasks.ps1 data` + `.\tasks.ps1 pipeline`
-data/raw/*
-data/processed/*
-data/powerbi/
-data/*.duckdb
-data/*.duckdb.wal
-!data/raw/.gitkeep
-!data/processed/.gitkeep
+# Data: never committed; rebuilt with `.\tasks.ps1 data` and `.\tasks.ps1 pipeline`
+data/
 
-# Power BI file (36 MB): distributed via GitHub Release, not Git
+# Power BI: only the final dashboard is committed
 *.pbix
+!dashboard/Olist_Insights.pbix
 
-# ML artifacts
-mlruns/
-models/*.pkl
-models/*.joblib
-
-# Logs & temp
+# Logs and temp
 *.log
 *.tmp
 
@@ -50,9 +43,3 @@ kaggle.json
 *.zip
 *.tar
 *.gz
-
-# Local AI-assistant tooling
-.claude/
-coverage.xml
-.coverage
-htmlcov/

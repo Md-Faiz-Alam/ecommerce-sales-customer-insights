@@ -4,9 +4,7 @@ import streamlit as st
 import lib
 
 st.title("Delivery & Satisfaction")
-st.caption(
-    "The flagship finding: customers judge delivery against the promise, not absolute speed."
-)
+st.caption("Key finding: customers judge delivery against the promise, not absolute speed.")
 
 df = lib.filtered_orders()
 lib.require_rows(df)

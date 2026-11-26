@@ -1,5 +1,5 @@
 -- Monthly acquisition cohorts: % of each cohort that orders again N months after their first order.
--- Business question: do customers come back? (Spoiler: almost never; this is the headline problem.)
+-- Business question: do customers come back?
 CREATE OR REPLACE VIEW analysis.cohort_retention AS
 WITH window_start AS (
     SELECT min(purchase_month) AS first_month FROM marts.fact_orders WHERE in_analysis_window

@@ -17,7 +17,7 @@ GROUP BY customer_state
 ORDER BY late_pct DESC;
 
 
--- Flagship view: how review scores change with delivery delay vs. the promised date.
+-- How review scores change with delivery delay vs. the promised date.
 CREATE OR REPLACE VIEW analysis.delivery_vs_review AS
 WITH bucketed AS (
     SELECT

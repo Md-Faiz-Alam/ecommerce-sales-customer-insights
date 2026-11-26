@@ -76,5 +76,5 @@ with st.expander("How these metrics are defined"):
         "- **Customers**: unique people. Olist issues a new `customer_id` per order, so the person-level ID is used.\n"
         "- **Late**: delivered on a calendar day after the promised date.\n"
         "- Category = the main (highest-priced) item's category.\n\n"
-        "Full definitions: `docs/metrics.md` in the repository."
+        "Full definitions: `reports/metrics.md` in the repository."
     )

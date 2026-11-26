@@ -1,21 +1,19 @@
-"""Train all models, save them, and write reports/model_report.md + reports/model_metrics.json.
+"""Train and evaluate all models, and write reports/model_report.md.
 
 Run:  python -m ecom.models.train
 """
 
 from __future__ import annotations
 
-import json
 import logging
 import time
 from datetime import datetime
 
-import joblib
 import pandas as pd
 
 from ecom.config import REPORTS_DIR
 from ecom.features import build_features
-from ecom.models import MODELS_DIR, delivery_time, forecast, review_risk
+from ecom.models import delivery_time, forecast, review_risk
 
 log = logging.getLogger("ecom.train")
 
@@ -92,37 +90,26 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s",
                         datefmt="%H:%M:%S")  # fmt: skip
     t0 = time.perf_counter()
-    MODELS_DIR.mkdir(exist_ok=True)
 
     log.info("Building leakage-safe features")
     feats = build_features()
 
     log.info("Training delivery-time quantile models")
-    dt_model, dt_metrics, curve = delivery_time.train(feats)
-    joblib.dump(dt_model, MODELS_DIR / "delivery_time.joblib")
+    _, dt_metrics, curve = delivery_time.train(feats)
 
     log.info("Training review-risk models")
-    rr_model, rr_metrics, _ = review_risk.train(feats)
-    joblib.dump(rr_model, MODELS_DIR / "review_risk.joblib")
+    _, rr_metrics, _ = review_risk.train(feats)
 
     log.info("Backtesting forecasts")
     series = forecast.daily_orders()
     folds, preds = forecast.backtest(series)
     fc_summary = forecast.summarise(folds, preds, series)
 
-    metrics = {
-        "delivery_time": dt_metrics,
-        "review_risk": rr_metrics,
-        "forecast": fc_summary.to_dict(orient="index"),
-    }
     REPORTS_DIR.mkdir(exist_ok=True)
-    (REPORTS_DIR / "model_metrics.json").write_text(
-        json.dumps(metrics, indent=2, default=float) + "\n", encoding="utf-8"
-    )
     (REPORTS_DIR / "model_report.md").write_text(
         write_report(dt_metrics, curve, rr_metrics, fc_summary), encoding="utf-8"
     )
-    log.info("Saved models -> %s, report -> reports/model_report.md", MODELS_DIR.name)
+    log.info("Report -> reports/model_report.md (the app's models: python -m ecom.export_app)")
     log.info("Done in %.1fs", time.perf_counter() - t0)
 
 

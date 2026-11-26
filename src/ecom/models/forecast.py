@@ -24,7 +24,7 @@ SEASON = 7
 # data-extraction cut-off, not real demand, so the series ends here.
 LAST_COMPLETE_DAY = pd.Timestamp("2018-08-21")
 
-# Known external shocks, shown on charts and excluded from nothing (honest backtest):
+# Known external shocks: kept in the backtest data and labelled on charts.
 EVENTS = {
     pd.Timestamp("2017-11-24"): "Black Friday",
     pd.Timestamp("2018-05-21"): "Truckers' strike",

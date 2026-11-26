@@ -2,231 +2,94 @@
 
 [![CI](https://github.com/Md-Faiz-Alam/ecommerce-sales-customer-insights/actions/workflows/ci.yml/badge.svg)](https://github.com/Md-Faiz-Alam/ecommerce-sales-customer-insights/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue)
-![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-261230)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-End-to-end analytics on **~100K real orders** from Olist, a Brazilian marketplace (2017–2018):
-a reproducible Python + SQL pipeline, a DuckDB warehouse, statistically tested analysis, and three
-machine-learning models that turn the findings into decisions.
+End-to-end analysis of **~100K real orders** from Olist, a Brazilian marketplace (Jan 2017 – Aug 2018):
+SQL star schema, statistical analysis, a Power BI dashboard, and three ML models that turn findings into decisions.
 
-> **Core finding:** orders that arrive after the promised date average **2.27★**, versus
-> **4.29★** for on-time orders, and only **3.1%** of customers ever buy a second time.
-> Delivery reliability is the biggest lever for satisfaction and retention.
+**Stack:** SQL (DuckDB) · Python (pandas, SciPy, scikit-learn, LightGBM) · Power BI (DAX) · Streamlit
 
-**Interactive app** (Streamlit): 4 analytics pages plus a delivery-promise simulator, a review-risk checker with
-per-order SHAP explanations, and a demand forecast. Run it with `.\tasks.ps1 app` · <!-- LIVE_APP_LINK: replace with
-[Open the live app](https://<your-app>.streamlit.app) after deploying (see 'Deploy the app' below) -->
+> **Main finding:** orders that arrive late average **2.3★** vs **4.3★** on time, and only **3.1%** of
+> customers ever buy again. Delivery reliability is the biggest lever for satisfaction and retention.
 
-<p align="center"><img src="reports/figures/delay_vs_negative_reviews.png" width="760"/></p>
+<p align="center"><img src="reports/figures/delay_vs_negative_reviews.png" width="720" alt="Negative reviews by days late"/></p>
 
-## Key findings (R$15.4M revenue, 99K orders, Jan 2017 – Aug 2018)
+## Key findings
 
-| # | Finding | Evidence |
-|---|---|---|
-| 1 | **Even a short delay destroys ratings.** Late orders are **6.7× as likely** to get 1–2★ (62% vs 9%; Mann-Whitney p < 0.001, rank-biserial r = 0.64). The effect holds in every state (state-adjusted relative risk 6.5), so geography doesn't explain it. Lateness causes **~28% of all negative reviews** | [Notebook 04](notebooks/04_delivery_vs_satisfaction.ipynb) |
-| 2 | **Retention is close to zero.** Only 3.1% of customers reorder; no monthly cohort ever retains more than 0.8%. 30% of "repeat" orders are same-day split baskets, not loyalty. A late first order cuts the repeat rate by a further 26% (p = 0.002) | [Notebook 03](notebooks/03_customer_retention.ipynb) |
-| 3 | **Peak season breaks logistics.** Black Friday (Nov 2017) lifted orders 63% month over month, and the late rate jumped from 4% to **12%**. Feb–Mar 2018 hit **14–19%** late, with ratings falling to 3.75★ | [Notebook 02](notebooks/02_business_overview.ipynb) |
-| 4 | **Promises are padded, but a blanket cut backfires.** Olist promises ~24 days for a ~12.5-day delivery, yet early delivery earns no extra rating. Cutting every promise by 3 days would raise the late rate from 6.8% to 11.3%. The fix is **route-level** promises: same-state orders take 7.9 days, cross-state 15.2 | [Notebook 04](notebooks/04_delivery_vs_satisfaction.ipynb) |
-| 5 | **Revenue is concentrated, and at risk.** The top 10% of sellers make 66% of revenue. 164 high-volume sellers with above-median negative reviews (19%; nearly double the late rate of top sellers) generate **R$5.2M (34%)** | [Notebook 05](notebooks/05_sellers_and_geography.ipynb) |
-| 6 | **The North-East is underserved.** 60% of sellers are in São Paulo; each extra 1,000 km adds ~6 delivery days. AL, MA, SE, CE: 14–21% late, 16–21% of order value spent on freight | [Notebook 05](notebooks/05_sellers_and_geography.ipynb) |
-| 7 | **Value sits in lapsing customers.** "At-risk big spenders" (13.7K customers, last seen ~13 months ago) hold 27% of revenue, which makes them the first win-back target | [Notebook 03](notebooks/03_customer_retention.ipynb) |
+1. **One day late doubles bad reviews.** Late orders are 6.7× as likely to get 1–2★ (62% vs 9%). The effect holds in
+   every state, so geography doesn't explain it. Lateness causes ~28% of all negative reviews.
+2. **Retention is near zero.** Only 3.1% of customers reorder; no monthly cohort retains more than 1%.
+3. **Peak season breaks logistics.** Late deliveries jump from 3–6% to 12% at Black Friday and 14–19% in Feb–Mar 2018.
+4. **Early delivery earns no credit.** Olist promises ~24 days for a ~12.5-day delivery, but cutting every promise
+   by 3 days would raise late deliveries from 6.8% to 11.3%. The fix is per-route promises.
+5. **Revenue depends on risky sellers.** 164 high-volume sellers with poor ratings generate 34% of revenue (R$5.2M).
 
-All metric definitions: [`reports/metrics.md`](reports/metrics.md).
+## Power BI dashboard
 
-### Recommendations
-
-1. **Set delivery promises per order from a model** ([notebook 06](notebooks/06_delivery_time_model.ipynb)): it halves late deliveries while promising sooner.
-2. **Day-0 alert at carrier handoff** ([notebook 07](notebooks/07_review_risk_model.ipynb)): contact the riskiest 10% of orders *before* the day-1–3 rating cliff, and measure it with an A/B hold-out.
-3. **Peak-season playbook** for November and Feb–Mar: book carrier capacity from the 28-day forecast ([notebook 08](notebooks/08_demand_forecast.ipynb)).
-4. **Seller SLAs** for the 164 high-volume, low-quality sellers (34% of revenue).
-5. **Win-back campaign** for at-risk big spenders, plus a "second order within 30 days" onboarding flow (the median gap to a second order is 28 days).
-6. **North-East seller recruitment / fulfilment hub** to cut distance, freight and lateness together.
-
----
-
-## Machine learning: from insight to decision
-
-Each model answers a decision raised by the analysis. All use a **time-based split** (train Jan 2017 – Apr 2018,
-validate May 2018, test Jun – Aug 2018) and **leakage-safe features**: a seller's or route's track record only counts
-outcomes known *before* the order was placed, enforced by [unit tests](tests/test_features.py). Full results:
-[`reports/model_report.md`](reports/model_report.md).
-
-| Model | Decision | Result on unseen months |
-|---|---|---|
-| **Delivery-time quantile model** (LightGBM, 10 quantiles) · [notebook 06](notebooks/06_delivery_time_model.ipynb) | What delivery date to promise at checkout | Late deliveries **3.6% → 1.7%** with promises **1.1 days shorter**. Alternative policy: same late rate as today with promises **5 days shorter**. Median error 3.4 days vs 4.7 for the best baseline |
-| **Negative-review risk** (LightGBM + SHAP, scored at carrier handoff) · [notebook 07](notebooks/07_review_risk_model.ipynb) | Which orders get proactive care | Contacting the riskiest 10% reaches **28% of future 1–2★ reviews** (2.8× random). PR-AUC 0.24 vs 0.21 (logistic baseline) and 0.18 (purchase-time model) |
-| **Daily demand forecast** (ETS + 4-week-mean ensemble, rolling backtest) · [notebook 08](notebooks/08_demand_forecast.ipynb) | How much carrier capacity to book | Daily error **−13%** vs naive; worst 28-day volume miss **18% vs 41%** for the naive model (the May 2018 truckers' strike) |
+<p align="center"><img src="reports/figures/dashboard.gif" width="900" alt="Power BI dashboard walkthrough"/></p>
 
 <p align="center">
-  <img src="reports/figures/promise_policy_curve.png" width="49%"/>
-  <img src="reports/figures/review_risk_gains.png" width="49%"/>
+  <img src="reports/figures/dashboard_overview.png" width="49%" alt="Executive Overview"/>
+  <img src="reports/figures/dashboard_delivery.png" width="49%" alt="Delivery and Satisfaction"/>
+  <img src="reports/figures/dashboard_customers.png" width="49%" alt="Customers and Retention"/>
+  <img src="reports/figures/dashboard_sellers.png" width="49%" alt="Seller Performance"/>
 </p>
 
-**Things I checked so the numbers are trustworthy:** test-period drift (Olist got faster in 2018, so test MAE is
-reported, not hidden); a dataset extraction cut-off after 21 Aug 2018 (excluded from the forecast); SHAP explanations
-that match the analysis (slow routes, multi-item orders, late seller dispatch); and fully reproducible training
-(fixed seeds plus a stable row order, so two runs give identical metrics).
+- 5 pages on a star schema with a marked date table; 36 DAX measures (time intelligence, `TOPN` ranking, rolling averages)
+- Every KPI reconciles with the SQL warehouse: Revenue R$ 15,371,741 · 99,092 orders · 6.8% late
+- Open [`dashboard/Olist_Insights.pbix`](dashboard/Olist_Insights.pbix) (data included) · all DAX in [`measures.dax`](dashboard/measures.dax)
 
----
+## Recommendations
 
-## Analysis notebooks
+1. **Set delivery promises per route** with the delivery-time model: on unseen months it cuts late deliveries
+   from 3.6% to 1.7% while promising 1.1 days sooner.
+2. **Flag risky orders at carrier handoff** and contact them before the rating drops: the riskiest 10% of orders
+   account for 28% of future negative reviews. Validate with an A/B test.
+3. **Seller SLAs** for the 164 high-volume, low-rated sellers.
+4. **Win-back campaign** for "at-risk big spenders" (15% of customers, 27% of revenue).
 
-Each follows **Question → Method → Finding → Recommendation**, with statistical tests where a claim needs one.
+## What's inside
 
-| Notebook | Question | Methods |
+| Part | What it shows | Where |
 |---|---|---|
-| [01 Data quality](notebooks/01_data_quality.ipynb) | Can the raw data be trusted? | Missingness patterns, audit trail, contract validation |
-| [02 Business overview](notebooks/02_business_overview.ipynb) | Growth, seasonality, revenue mix | MoM/YoY, moving averages, Pareto |
-| [03 Customer retention](notebooks/03_customer_retention.ipynb) | Do customers come back? Who should we target? | Cohort analysis, chi-square, RFM segmentation |
-| [04 Delivery → satisfaction](notebooks/04_delivery_vs_satisfaction.ipynb) | How much does lateness hurt, and what should we do? | Dose-response, Mann-Whitney U, relative risk + 95% CI, Mantel-Haenszel adjustment, what-if simulation |
-| [05 Sellers & geography](notebooks/05_sellers_and_geography.ipynb) | Which sellers and regions need action? | Concentration curve, volume × quality quadrant, distance analysis |
-| [06 Delivery-time model](notebooks/06_delivery_time_model.ipynb) | What should we promise each order? | Quantile regression, policy trade-off curve, drift check |
-| [07 Review-risk model](notebooks/07_review_risk_model.ipynb) | Which orders need proactive care? | Gradient boosting vs baselines, PR curve, cumulative gains, SHAP |
-| [08 Demand forecast](notebooks/08_demand_forecast.ipynb) | How much capacity to book? | ETS, naive baselines, ensemble, rolling-origin backtest |
+| **SQL** | Star schema, 8 analysis views (cohorts, RFM, Pareto, seller scorecard) with window functions, 8 SQL data tests | [`sql/`](sql) |
+| **Analysis** | 5 notebooks: data quality, business overview, retention, delivery vs reviews (statistical tests), sellers & geography | [`notebooks/01–05`](notebooks) |
+| **ML** | Delivery-time model (LightGBM quantiles), review-risk model (SHAP), 28-day demand forecast; time-based splits, no data leakage | [`notebooks/06–08`](notebooks), [`model_report`](reports/model_report.md) |
+| **Data quality** | Every cleaning rule with rows affected; data contracts that fail the pipeline on bad data | [`data_quality_report`](reports/data_quality_report.md) |
+| **App** | Streamlit: analytics pages, delivery-promise simulator, review-risk checker, forecast | [`app/`](app) |
+| **Metrics** | One definition per KPI (revenue, late, repeat customer…) | [`metrics.md`](reports/metrics.md) |
+| **Tests** | 47 tests (end-to-end pipeline, leakage, app) run on every push | [`tests/`](tests) |
 
-<p align="center">
-  <img src="reports/figures/late_effect_by_state.png" width="49%"/>
-  <img src="reports/figures/cohort_retention.png" width="49%"/>
-  <img src="reports/figures/seller_quadrants.png" width="49%"/>
-  <img src="reports/figures/promise_tradeoff.png" width="49%"/>
-</p>
-
----
-
-## Quickstart (Windows / PowerShell, Python 3.13)
+## Run it
 
 ```powershell
-.\tasks.ps1 setup      # create .venv, install pinned dependencies
-.\tasks.ps1 data       # download raw Olist CSVs from Kaggle into data/raw/
-.\tasks.ps1 pipeline   # clean -> validate -> Parquet -> DuckDB warehouse -> quality report
-.\tasks.ps1 train      # train the 3 ML models -> reports/model_report.md (~20 s)
-.\tasks.ps1 export     # star-schema CSVs for Power BI -> data/powerbi/
-.\tasks.ps1 app        # run the Streamlit app (http://localhost:8501)
-.\tasks.ps1 notebooks  # re-run the analysis notebooks (refreshes reports/figures)
-.\tasks.ps1 test       # unit tests
+.\tasks.ps1 setup      # create .venv and install dependencies (Python 3.13)
+.\tasks.ps1 data       # download the Olist CSVs from Kaggle
+.\tasks.ps1 pipeline   # clean, validate and build the DuckDB warehouse (~10 s)
+.\tasks.ps1 train      # train and evaluate the ML models
+.\tasks.ps1 app        # run the Streamlit app
+.\tasks.ps1 test       # run all tests
 ```
-
-The pipeline rebuilds everything from raw data in about 10 seconds:
-
-- `data/processed/*.parquet`: cleaned tables
-- `data/warehouse.duckdb`: queryable warehouse (`staging` schema)
-- [`reports/data_quality_report.md`](reports/data_quality_report.md): every cleaning rule and the number of rows it affected, plus all validation results
-
----
-
-## Pipeline
-
-```
-data/raw/*.csv ─► clean.py ─► validate.py ─► DuckDB staging ─► marts (star schema) ─► analysis views
-   (Kaggle)       documented   pandera +        Parquet          sql/01_marts          sql/02_analysis
-                  rules, flags foreign keys                          └──── sql/tests: 8 data tests ────┘
-```
-
-The SQL layer is documented in [`sql/README.md`](sql/README.md): a star schema plus 8 analysis views
-using window functions (`LAG`, `NTILE`, `DENSE_RANK`, running totals), cohort indexing, and RFM/ABC
-classification. The pipeline fails if any SQL data test (row counts, revenue reconciliation,
-uniqueness) breaks.
-
-### Data-cleaning decisions
-
-| Problem found | Decision |
-|---|---|
-| `customer_id` is generated per order | Customer counts and retention use `customer_unique_id` (**96,096** people, not 99,441) |
-| 4 products with weight/dimension = 0, 2 missing | Treated as missing (NA) and flagged; never filled with fake zeros |
-| 610 products without a category; names in Portuguese | `unknown`; translated to English, including 2 categories missing from Olist's own translation file |
-| 551 orders with several reviews | Keep the latest review per order (order-level grain) |
-| Sparse months (Sep–Dec 2016, Sep–Oct 2018) | Kept but flagged `in_analysis_window = false`, and excluded from trends and forecasts |
-| 1,359 orders handed to the carrier before payment approval; 8 "delivered" orders with no date | Flagged in `has_timestamp_anomaly`, not silently fixed |
-| "Late" definition | Delivered on a calendar day after the promised date (**6.8%** of delivered orders) |
-| 1M geolocation points, some outside Brazil | Out-of-country GPS noise removed; collapsed to one median centroid per zip prefix |
-| Revenue definition | Completed revenue counts only orders with `is_delivered = true` (delivered status plus a delivery date) |
-
-The full audit trail is in [`reports/data_quality_report.md`](reports/data_quality_report.md).
-
----
-
-## Dashboard (Power BI)
-
-Five pages on a star schema exported from the warehouse (`.\tasks.ps1 export`): **Executive Overview**,
-**Delivery & Satisfaction**, **Customers & Retention** (cohort heatmap, RFM), **Seller Performance**
-(volume × quality scatter, scorecard) and **Planning** (forecast and model results).
-
-- Marked date table and sort-by columns, so MoM/YoY time intelligence works and months sort chronologically
-- Revenue summed from the item fact, so category and seller slicers filter it correctly
-- 36 DAX measures, including `TOPN` + `ADDCOLUMNS` seller concentration and `DATESINPERIOD` rolling averages
-- Every KPI reconciles to the SQL warehouse (expected values at the top of [`measures.dax`](dashboard/measures.dax))
-- All 36 DAX measures are readable in [`dashboard/measures.dax`](dashboard/measures.dax) without opening Power BI
-
-**Open it:** `dashboard/Olist_Insights.pbix` (data included, so it opens directly in Power BI Desktop).
-To reload fresh data: run `.\tasks.ps1 pipeline` and `.\tasks.ps1 export`, update the `DataFolder` parameter
-(Home → Transform data → Edit parameters) if the repo is in another folder, then click **Refresh**.
-
-<!-- SCREENSHOTS: uncomment after saving them to reports/figures/
-<p align="center">
-  <img src="reports/figures/dashboard_overview.png" width="49%"/>
-  <img src="reports/figures/dashboard_delivery.png" width="49%"/>
-  <img src="reports/figures/dashboard_customers.png" width="49%"/>
-  <img src="reports/figures/dashboard_sellers.png" width="49%"/>
-</p>
--->
-
----
-
-## Deploy the app (free, Streamlit Community Cloud)
-
-The app reads only `app/data` and `app/models` (about 6 MB, committed). Models ship as LightGBM text files,
-and `tests/test_app_parity.py` proves they reproduce the training predictions exactly.
-
-1. [share.streamlit.io](https://share.streamlit.io) → sign in with GitHub → **Create app**
-2. Repository `Md-Faiz-Alam/ecommerce-sales-customer-insights` · branch `main` · main file `app/streamlit_app.py`
-3. **Advanced settings → Python 3.13** → Deploy (dependencies come from `app/requirements.txt`)
-
-Refresh the app's data and models after changing the pipeline: `.	asks.ps1 export-app`.
-
-## Engineering & testing
-
-Every push runs [GitHub Actions CI](.github/workflows/ci.yml): pre-commit lint (ruff, notebook hygiene) and
-**47 tests on Python 3.12 and 3.13**. CI has no access to the 180 MB raw data, so the suite is designed to work without it:
-
-| Test file | What it proves |
-|---|---|
-| `test_pipeline_e2e.py` | A synthetic Olist-shaped dataset goes through the **whole pipeline**: cleaning, data contracts, DuckDB marts, all analysis views and all 8 SQL data tests, then feature building and training both ML models |
-| `test_clean.py`, `test_validate.py` | Each cleaning rule (calendar-day lateness, no fake zeros, latest review per order) and that the contracts catch bad data |
-| `test_features.py` | **No leakage**: an order never sees its own or future outcomes; rolling windows drop old events |
-| `test_models.py` | Promise/late accounting, top-k lift, and a backtest that never trains on the future |
-| `test_app_parity.py` | The app's exported text models reproduce the training predictions exactly (no training/serving skew) |
-| `test_app_smoke.py` | Every Streamlit page renders; overview KPIs match the warehouse; the risk checker flags a risky order |
-
-Core modules (cleaning, contracts, warehouse, features, models) have **96–100% line coverage**, 69% overall.
-The uncovered code is CLI orchestration that runs against the real data, and chart styling.
 
 ## Project structure
 
 ```
-├── sql/          # DuckDB: star-schema marts, analysis views, SQL data tests
+├── sql/          # star-schema marts, analysis views, SQL data tests
 ├── notebooks/    # 01–05 analysis, 06–08 machine learning
-├── dashboard/    # Power BI dashboard (Olist_Insights.pbix) + all DAX measures
-├── app/          # Streamlit app (self-contained data + models)
+├── dashboard/    # Power BI dashboard + DAX measures
+├── app/          # Streamlit app
 ├── src/ecom/     # Python package: download, clean, validate, warehouse, features, models
-├── tests/        # 47 tests, run by CI (.github/workflows)
-├── reports/      # metric definitions, data-quality and model reports, all figures
-├── tasks.ps1     # one command per step: setup, data, pipeline, train, app, test
-└── pyproject.toml
+├── tests/        # automated tests
+└── reports/      # metric definitions, data-quality and model reports, figures
 ```
-`data/` is created locally by the pipeline and never committed.
-
-## Tech stack
-
-Python 3.13 · pandas 3 · DuckDB (SQL) · SciPy · scikit-learn · LightGBM · SHAP · statsmodels · Streamlit · Plotly · matplotlib · pandera · pytest · ruff · Power BI
 
 ## Limitations
 
-- Olist's delivery speed improved during 2018, so models trained on 2017 data are conservative on 2018 orders (reported in notebook 06).
-- Orders after 21 Aug 2018 are truncated by the dataset extraction, so August 2018 KPIs are slightly understated.
-- Review scores depend on product quality and expectations, which this data doesn't capture.
-- Causal claims (e.g. "lateness causes bad reviews") are supported by dose-response and state-adjusted analysis,
-  but the recommended interventions should still be validated with A/B tests.
+- Orders after 21 Aug 2018 are truncated in the source data, so August 2018 is slightly understated.
+- Review scores also depend on product quality, which the data doesn't capture.
+- The analysis supports lateness as a cause of bad reviews (dose-response, state-adjusted), but interventions
+  should still be validated with A/B tests.
 
 ## Data
 
-[Olist Brazilian E-Commerce Public Dataset](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) (CC BY-NC-SA 4.0). Values are in Brazilian reais (BRL).
+[Olist Brazilian E-Commerce Public Dataset](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) (CC BY-NC-SA 4.0). Values in Brazilian reais (BRL).

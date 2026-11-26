@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ecom"
+version = "0.1.0"
+description = "End-to-end analytics & ML on the Olist Brazilian e-commerce dataset"
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Md Faiz Alam" }]
+dependencies = [
+    "pandas>=3.0",
+    "numpy>=2.1",
+    "pyarrow>=18",
+    "duckdb>=1.2",
+    "pandera[pandas]>=0.24",
+    "kagglehub>=0.3",
+]
+
+[project.optional-dependencies]
+viz = ["matplotlib>=3.9", "seaborn>=0.13", "plotly>=5.24"]
+notebooks = ["jupyterlab>=4.2", "ipykernel>=6.29"]
+dev = ["pytest>=8.3", "ruff>=0.8", "pre-commit>=4.0", "nbstripout>=0.8"]
+
+[project.scripts]
+ecom-pipeline = "ecom.pipeline:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "PD", "NPY"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"

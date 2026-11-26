@@ -1,0 +1,10 @@
+# Normalise line endings in the repo (stops LF/CRLF warnings on Windows)
+* text=auto eol=lf
+*.ps1 text eol=crlf
+
+# Binary files
+*.png binary
+*.gif binary
+*.pbix binary
+*.parquet binary
+*.duckdb binary

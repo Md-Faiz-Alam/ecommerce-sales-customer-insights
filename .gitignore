@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Data: never committed; rebuild with `.\tasks.ps1 data` + `.\tasks.ps1 pipeline`
+data/raw/*
+data/processed/*
+data/*.duckdb
+data/*.duckdb.wal
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Power BI file (36 MB): distributed via GitHub Release, not Git
+*.pbix
+
+# ML artifacts
+mlruns/
+models/*.pkl
+models/*.joblib
+
+# Logs & temp
+*.log
+*.tmp
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Secrets
+.env
+kaggle.json
+
+# Archives
+*.zip
+*.tar
+*.gz

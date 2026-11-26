@@ -1,8 +1,9 @@
-import lib
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+
+import lib
 
 st.title("Customers & Retention")
 

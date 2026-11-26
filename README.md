@@ -1,5 +1,10 @@
 # E-commerce Sales & Customer Insights (Olist, Brazil)
 
+[![CI](https://github.com/Md-Faiz-Alam/ecommerce-sales-customer-insights/actions/workflows/ci.yml/badge.svg)](https://github.com/Md-Faiz-Alam/ecommerce-sales-customer-insights/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue)
+![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-261230)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+
 End-to-end analytics on **~100K real orders** from Olist, a Brazilian marketplace (2017–2018):
 a reproducible Python + SQL pipeline, a DuckDB warehouse, statistically tested analysis, and three
 machine-learning models that turn the findings into decisions.
@@ -166,6 +171,23 @@ The `.pbix` file is attached to the GitHub release.
 
 ---
 
+## Engineering & testing
+
+Every push runs [GitHub Actions CI](.github/workflows/ci.yml): pre-commit lint (ruff, notebook hygiene) and
+**47 tests on Python 3.12 and 3.13**. CI has no access to the 180 MB raw data, so the suite is designed to work without it:
+
+| Test file | What it proves |
+|---|---|
+| `test_pipeline_e2e.py` | A synthetic Olist-shaped dataset goes through the **whole pipeline**: cleaning, data contracts, DuckDB marts, all analysis views and all 8 SQL data tests, then feature building and training both ML models |
+| `test_clean.py`, `test_validate.py` | Each cleaning rule (calendar-day lateness, no fake zeros, latest review per order) and that the contracts catch bad data |
+| `test_features.py` | **No leakage**: an order never sees its own or future outcomes; rolling windows drop old events |
+| `test_models.py` | Promise/late accounting, top-k lift, and a backtest that never trains on the future |
+| `test_app_parity.py` | The app's exported text models reproduce the training predictions exactly (no training/serving skew) |
+| `test_app_smoke.py` | Every Streamlit page renders; overview KPIs match the warehouse; the risk checker flags a risky order |
+
+Core modules (cleaning, contracts, warehouse, features, models) have **96–100% line coverage**, 69% overall.
+The uncovered code is CLI orchestration that runs against the real data, and chart styling.
+
 ## Project structure
 
 ```
@@ -176,7 +198,8 @@ The `.pbix` file is attached to the GitHub release.
 ├── scripts/             # download_data.py
 ├── sql/                 # DuckDB: 01_marts (star schema), 02_analysis (views), tests
 ├── docs/                # metric definitions
-├── tests/               # pytest: cleaning rules, data contracts, SQL runner, leakage, model logic
+├── tests/               # 47 tests: e2e pipeline on synthetic data, leakage, parity, app smoke
+├── .github/workflows/   # CI: lint + tests on Python 3.12 / 3.13
 ├── reports/             # generated data-quality report, figures/
 ├── dashboard/           # Power BI guide, DAX measures, theme (.pbix in the release)
 ├── images/              # dashboard screenshots
@@ -194,6 +217,7 @@ The `.pbix` file is attached to the GitHub release.
 - [x] Streamlit app with ML simulators + serving-parity tests
 - [ ] Deploy the app to Streamlit Community Cloud and link it here
 - [x] Power BI: star-schema export, DAX measures, theme, build guide
+- [x] CI: lint + 47 tests (e2e on synthetic data, leakage, parity, app smoke) on Python 3.12/3.13
 - [ ] Power BI: rebuild the .pbix from the guide + new screenshots
 - [ ] Executive summary
 

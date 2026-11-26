@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import datetime as dt
 
-import lib
 import streamlit as st
+
+import lib
 
 FRIENDLY = {
     "route_delivery_days": "Route: avg delivery time (all-time)",

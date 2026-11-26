@@ -40,7 +40,7 @@ switch ($Task) {
             Invoke-Py -m jupyter nbconvert --to notebook --execute --inplace $_.FullName
         }
     }
-    "test"     { Invoke-Py -m pytest }
+    "test"     { Invoke-Py -m pytest --cov }
     "lint"     { Invoke-Py -m ruff check src tests scripts app notebooks; Invoke-Py -m ruff format --check src tests scripts app }
     "all"      { & $PSCommandPath data; & $PSCommandPath pipeline; & $PSCommandPath test }
     default    { Get-Help $PSCommandPath -Detailed }

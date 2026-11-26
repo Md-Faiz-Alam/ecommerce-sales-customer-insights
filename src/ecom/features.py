@@ -158,7 +158,7 @@ def build_features(train_end: pd.Timestamp = TRAIN_END) -> pd.DataFrame:
     df["same_state"] = (df["customer_state"] == df["seller_state"]).astype(int)
     df["is_repeat_customer"] = (df["customer_order_seq"] > 1).astype(int)
     df["used_voucher"] = df["used_voucher"].fillna(False).astype(int)
-    df["purchase_dow"] = df["purchase_ts"].dt.dayofweek
+    df["purchase_dow"] = df["purchase_ts"].dt.day_of_week
     df["purchase_hour"] = df["purchase_ts"].dt.hour
     df["purchase_month"] = df["purchase_ts"].dt.month
     df["route"] = df["seller_state"] + ">" + df["customer_state"]

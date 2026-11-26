@@ -24,7 +24,8 @@ dependencies = [
 viz = ["matplotlib>=3.9", "seaborn>=0.13", "plotly>=5.24"]
 notebooks = ["jupyterlab>=4.2", "ipykernel>=6.29", "scipy>=1.14"]
 ml = ["scikit-learn>=1.5", "lightgbm>=4.5", "shap>=0.46", "statsmodels>=0.14.5", "joblib>=1.4"]
-dev = ["pytest>=8.3", "ruff>=0.8", "pre-commit>=4.0", "nbstripout>=0.8"]
+app = ["streamlit>=1.40", "plotly>=5.24"]
+dev = ["pytest>=8.3", "pytest-cov>=6.0", "ruff>=0.8", "pre-commit>=4.0", "nbstripout>=0.8"]
 
 [project.scripts]
 ecom-pipeline = "ecom.pipeline:main"
@@ -46,6 +47,16 @@ select = ["E", "F", "I", "B", "UP", "SIM", "PD", "NPY"]
 # Streamlit pages are mostly user-facing copy and chart config; src/ stays fully strict.
 "app/**" = ["E501"]
 
+[tool.ruff.lint.isort]
+known-first-party = ["ecom", "lib", "order_form"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+
+[tool.coverage.run]
+source = ["ecom"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false

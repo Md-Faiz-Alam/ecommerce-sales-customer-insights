@@ -3,8 +3,9 @@
 Run locally:  streamlit run app/streamlit_app.py
 """
 
-import lib
 import streamlit as st
+
+import lib
 
 st.set_page_config(page_title="Olist Insights", page_icon="📦", layout="wide")
 

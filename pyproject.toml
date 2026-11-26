@@ -23,6 +23,7 @@ dependencies = [
 [project.optional-dependencies]
 viz = ["matplotlib>=3.9", "seaborn>=0.13", "plotly>=5.24"]
 notebooks = ["jupyterlab>=4.2", "ipykernel>=6.29", "scipy>=1.14"]
+ml = ["scikit-learn>=1.5", "lightgbm>=4.5", "shap>=0.46", "statsmodels>=0.14.5", "joblib>=1.4"]
 dev = ["pytest>=8.3", "ruff>=0.8", "pre-commit>=4.0", "nbstripout>=0.8"]
 
 [project.scripts]

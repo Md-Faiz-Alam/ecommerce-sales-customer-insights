@@ -1,8 +1,8 @@
 # E-commerce Sales & Customer Insights (Olist, Brazil)
 
 End-to-end analytics on **~100K real orders** from Olist, a Brazilian marketplace (2017–2018):
-a reproducible Python + SQL pipeline, a DuckDB warehouse, statistically tested analysis notebooks,
-and a Power BI dashboard. Machine-learning models are next.
+a reproducible Python + SQL pipeline, a DuckDB warehouse, statistically tested analysis, and three
+machine-learning models that turn the findings into decisions.
 
 > **Core finding:** orders that arrive after the promised date average **2.27★**, versus
 > **4.29★** for on-time orders, and only **3.1%** of customers ever buy a second time.
@@ -26,12 +26,37 @@ All metric definitions: [`docs/metrics.md`](docs/metrics.md).
 
 ### Recommendations
 
-1. **Predict delivery time per route** and set promises from it: short where safe, long where risky (model in progress).
-2. **Day-0 delay alert:** notify customers and offer a small voucher *before* the day-1–3 rating cliff. Measure with an A/B test.
-3. **Peak-season playbook** for November and Feb–Mar: carrier capacity, and longer promises on risky routes.
+1. **Set delivery promises per order from a model** ([notebook 06](notebooks/06_delivery_time_model.ipynb)): it halves late deliveries while promising sooner.
+2. **Day-0 alert at carrier handoff** ([notebook 07](notebooks/07_review_risk_model.ipynb)): contact the riskiest 10% of orders *before* the day-1–3 rating cliff, and measure it with an A/B hold-out.
+3. **Peak-season playbook** for November and Feb–Mar: book carrier capacity from the 28-day forecast ([notebook 08](notebooks/08_demand_forecast.ipynb)).
 4. **Seller SLAs** for the 164 high-volume, low-quality sellers (34% of revenue).
 5. **Win-back campaign** for at-risk big spenders, plus a "second order within 30 days" onboarding flow (the median gap to a second order is 28 days).
 6. **North-East seller recruitment / fulfilment hub** to cut distance, freight and lateness together.
+
+---
+
+## Machine learning: from insight to decision
+
+Each model answers a decision raised by the analysis. All use a **time-based split** (train Jan 2017 – Apr 2018,
+validate May 2018, test Jun – Aug 2018) and **leakage-safe features**: a seller's or route's track record only counts
+outcomes known *before* the order was placed, enforced by [unit tests](tests/test_features.py). Full results:
+[`reports/model_report.md`](reports/model_report.md).
+
+| Model | Decision | Result on unseen months |
+|---|---|---|
+| **Delivery-time quantile model** (LightGBM, 10 quantiles) · [notebook 06](notebooks/06_delivery_time_model.ipynb) | What delivery date to promise at checkout | Late deliveries **3.6% → 1.7%** with promises **1.1 days shorter**. Alternative policy: same late rate as today with promises **5 days shorter**. Median error 3.4 days vs 4.7 for the best baseline |
+| **Negative-review risk** (LightGBM + SHAP, scored at carrier handoff) · [notebook 07](notebooks/07_review_risk_model.ipynb) | Which orders get proactive care | Contacting the riskiest 10% reaches **28% of future 1–2★ reviews** (2.8× random). PR-AUC 0.24 vs 0.21 (logistic baseline) and 0.18 (purchase-time model) |
+| **Daily demand forecast** (ETS + 4-week-mean ensemble, rolling backtest) · [notebook 08](notebooks/08_demand_forecast.ipynb) | How much carrier capacity to book | Daily error **−13%** vs naive; worst 28-day volume miss **18% vs 41%** for the naive model (the May 2018 truckers' strike) |
+
+<p align="center">
+  <img src="reports/figures/promise_policy_curve.png" width="49%"/>
+  <img src="reports/figures/review_risk_gains.png" width="49%"/>
+</p>
+
+**Things I checked so the numbers are trustworthy:** test-period drift (Olist got faster in 2018, so test MAE is
+reported, not hidden); a dataset extraction cut-off after 21 Aug 2018 (excluded from the forecast); SHAP explanations
+that match the analysis (slow routes, multi-item orders, late seller dispatch); and fully reproducible training
+(fixed seeds plus a stable row order, so two runs give identical metrics).
 
 ---
 
@@ -46,6 +71,9 @@ Each follows **Question → Method → Finding → Recommendation**, with statis
 | [03 Customer retention](notebooks/03_customer_retention.ipynb) | Do customers come back? Who should we target? | Cohort analysis, chi-square, RFM segmentation |
 | [04 Delivery → satisfaction](notebooks/04_delivery_vs_satisfaction.ipynb) | How much does lateness hurt, and what should we do? | Dose-response, Mann-Whitney U, relative risk + 95% CI, Mantel-Haenszel adjustment, what-if simulation |
 | [05 Sellers & geography](notebooks/05_sellers_and_geography.ipynb) | Which sellers and regions need action? | Concentration curve, volume × quality quadrant, distance analysis |
+| [06 Delivery-time model](notebooks/06_delivery_time_model.ipynb) | What should we promise each order? | Quantile regression, policy trade-off curve, drift check |
+| [07 Review-risk model](notebooks/07_review_risk_model.ipynb) | Which orders need proactive care? | Gradient boosting vs baselines, PR curve, cumulative gains, SHAP |
+| [08 Demand forecast](notebooks/08_demand_forecast.ipynb) | How much capacity to book? | ETS, naive baselines, ensemble, rolling-origin backtest |
 
 <p align="center">
   <img src="reports/figures/late_effect_by_state.png" width="49%"/>
@@ -62,6 +90,7 @@ Each follows **Question → Method → Finding → Recommendation**, with statis
 .\tasks.ps1 setup      # create .venv, install pinned dependencies
 .\tasks.ps1 data       # download raw Olist CSVs from Kaggle into data/raw/
 .\tasks.ps1 pipeline   # clean -> validate -> Parquet -> DuckDB warehouse -> quality report
+.\tasks.ps1 train      # train the 3 ML models -> reports/model_report.md (~20 s)
 .\tasks.ps1 notebooks  # re-run the analysis notebooks (refreshes reports/figures)
 .\tasks.ps1 test       # unit tests
 ```
@@ -116,12 +145,13 @@ The full audit trail is in [`reports/data_quality_report.md`](reports/data_quali
 ## Project structure
 
 ```
-├── src/ecom/            # package: pipeline (clean, validate, warehouse), db access, chart style
-├── notebooks/           # 01–05 analysis notebooks
+├── src/ecom/            # package: pipeline (clean, validate, warehouse), features, chart style
+│   └── models/          # delivery_time, review_risk, forecast, train
+├── notebooks/           # 01–05 analysis, 06–08 machine learning
 ├── scripts/             # download_data.py
 ├── sql/                 # DuckDB: 01_marts (star schema), 02_analysis (views), tests
 ├── docs/                # metric definitions
-├── tests/               # pytest: cleaning rules, data contracts, SQL test runner
+├── tests/               # pytest: cleaning rules, data contracts, SQL runner, leakage, model logic
 ├── reports/             # generated data-quality report, figures/
 ├── dashboard/           # Power BI .pbix
 ├── images/              # dashboard screenshots
@@ -135,13 +165,21 @@ The full audit trail is in [`reports/data_quality_report.md`](reports/data_quali
 - [x] Reproducible pipeline, data contracts, data-quality report, tests
 - [x] SQL marts (star schema) + cohort retention, RFM, Pareto, seller scorecard, SQL data tests
 - [x] Analysis notebooks: delivery → satisfaction (with statistical tests), retention, seller and geography
-- [ ] ML: negative-review risk model (LightGBM + SHAP), customer segmentation, demand forecast
+- [x] ML: delivery-time quantile model, negative-review risk model (LightGBM + SHAP), demand forecast
 - [ ] Live Streamlit app
 - [ ] Power BI fixes + executive summary
 
 ## Tech stack
 
-Python 3.13 · pandas 3 · DuckDB (SQL) · SciPy · matplotlib · pandera · pytest · ruff · Power BI
+Python 3.13 · pandas 3 · DuckDB (SQL) · SciPy · scikit-learn · LightGBM · SHAP · statsmodels · matplotlib · pandera · pytest · ruff · Power BI
+
+## Limitations
+
+- Olist's delivery speed improved during 2018, so models trained on 2017 data are conservative on 2018 orders (reported in notebook 06).
+- Orders after 21 Aug 2018 are truncated by the dataset extraction, so August 2018 KPIs are slightly understated.
+- Review scores depend on product quality and expectations, which this data doesn't capture.
+- Causal claims (e.g. "lateness causes bad reviews") are supported by dose-response and state-adjusted analysis,
+  but the recommended interventions should still be validated with A/B tests.
 
 ## Data
 

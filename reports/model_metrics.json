@@ -1,0 +1,83 @@
+{
+  "delivery_time": {
+    "rows": {
+      "train": 70851,
+      "valid": 6749,
+      "test": 18603
+    },
+    "chosen_quantile": 0.925,
+    "test_olist_late_pct": 3.612320593452669,
+    "test_olist_avg_promise_days": 21.437456324248778,
+    "test_model_late_pct": 1.72552814062248,
+    "test_model_avg_promise_days": 20.368865236789766,
+    "test_promise_days_saved": 1.068591087459012,
+    "test_mae_days": {
+      "lightgbm_p50": 3.4414437994906826,
+      "route_history_90d": 4.696527752205743,
+      "train_median": 4.896414556791915
+    },
+    "test_actual_avg_days": 8.558673332258238
+  },
+  "review_risk": {
+    "rows": {
+      "train": 70317,
+      "valid": 6722,
+      "test": 18520
+    },
+    "test_base_rate": 0.09730021598272139,
+    "models": {
+      "Logistic regression (dispatch)": {
+        "roc_auc": 0.6553676054002285,
+        "pr_auc": 0.20779306678668918,
+        "precision_top10%": 0.25,
+        "recall_top10%": 0.25693673695893454,
+        "lift_top10%": 2.569367369589345
+      },
+      "LightGBM (purchase-time)": {
+        "roc_auc": 0.6242536140739796,
+        "pr_auc": 0.18316488266625514,
+        "precision_top10%": 0.22462203023758098,
+        "recall_top10%": 0.23085460599334073,
+        "lift_top10%": 2.3085460599334073
+      },
+      "LightGBM (dispatch-time)": {
+        "roc_auc": 0.661063082199611,
+        "pr_auc": 0.24044704630064445,
+        "precision_top10%": 0.2737580993520518,
+        "recall_top10%": 0.281354051054384,
+        "lift_top10%": 2.81354051054384
+      }
+    },
+    "best_iteration": 122
+  },
+  "forecast": {
+    "Ensemble (ETS + 4-week mean)": {
+      "mae": 48.56,
+      "mape_pct": 24.79,
+      "mase": 1.44,
+      "total_28d_abs_err_pct": 9.84,
+      "total_28d_worst_err_pct": 17.56
+    },
+    "Seasonal mean (last 4 weeks)": {
+      "mae": 54.28,
+      "mape_pct": 27.18,
+      "mase": 1.6,
+      "total_28d_abs_err_pct": 11.89,
+      "total_28d_worst_err_pct": 28.29
+    },
+    "Seasonal naive (last week)": {
+      "mae": 55.86,
+      "mape_pct": 28.88,
+      "mase": 1.66,
+      "total_28d_abs_err_pct": 14.03,
+      "total_28d_worst_err_pct": 40.82
+    },
+    "ETS (damped trend + weekly, log)": {
+      "mae": 55.26,
+      "mape_pct": 28.35,
+      "mase": 1.65,
+      "total_28d_abs_err_pct": 14.51,
+      "total_28d_worst_err_pct": 36.69
+    }
+  }
+}

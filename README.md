@@ -3,11 +3,14 @@
 [![CI](https://github.com/Md-Faiz-Alam/ecommerce-sales-customer-insights/actions/workflows/ci.yml/badge.svg)](https://github.com/Md-Faiz-Alam/ecommerce-sales-customer-insights/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://ecommerce-sales-customer-insights-ha9hk9da8dbakzagrp9td9.streamlit.app/)
 
 End-to-end analysis of **~100K real orders** from Olist, a Brazilian marketplace (Jan 2017 – Aug 2018):
 SQL star schema, statistical analysis, a Power BI dashboard, and three ML models that turn findings into decisions.
 
 **Stack:** SQL (DuckDB) · Python (pandas, SciPy, scikit-learn, LightGBM) · Power BI (DAX) · Streamlit
+
+**▶ [Try the live app](https://ecommerce-sales-customer-insights-ha9hk9da8dbakzagrp9td9.streamlit.app/)**: interactive analytics, a delivery-promise simulator and a review-risk checker.
 
 > **Main finding:** orders that arrive late average **2.3★** vs **4.3★** on time, and only **3.1%** of
 > customers ever buy again. Delivery reliability is the biggest lever for satisfaction and retention.

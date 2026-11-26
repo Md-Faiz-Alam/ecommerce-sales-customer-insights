@@ -8,6 +8,20 @@ retention analysis and machine-learning models.
 > **4.29★** for on-time orders, and only **3.1%** of customers ever buy a second time.
 > Delivery reliability is the biggest lever for satisfaction and retention.
 
+## Key findings (R$15.4M revenue, 99K orders, Jan 2017 – Aug 2018)
+
+| # | Finding | Evidence |
+|---|---|---|
+| 1 | **Even a short delay destroys ratings.** Negative reviews (1–2★) go from **9%** for early orders to **32%** at 1–3 days late and **68%** at 4–7 days late | `analysis.delivery_vs_review` |
+| 2 | **Retention is close to zero.** Only 3.1% of customers reorder; month-1 retention averages **0.5%**. 30% of "repeat" orders are same-day split baskets, not loyalty | `analysis.cohort_retention`, `repeat_purchase_summary` |
+| 3 | **Peak season breaks logistics.** Black Friday (Nov 2017) lifted orders 63% month over month, and the late rate jumped from 4% to **12%**. Feb–Mar 2018 hit **14–19%** late, with ratings falling to 3.75★ | `analysis.kpi_monthly` |
+| 4 | **Delivery promises are padded.** 74% of orders arrive 8+ days early. A shorter, accurate promise could improve conversion without hurting ratings | `analysis.delivery_vs_review` |
+| 5 | **Revenue is concentrated, and at risk.** 164 high-volume sellers with above-median negative reviews (19%) generate **R$5.2M (34%)** of revenue | `analysis.seller_scorecard` |
+| 6 | **The North-East is underserved.** AL, MA, SE, CE: 14–21% late, 16–21% of order value spent on freight, 1,650–2,200 km average shipping distance | `analysis.state_delivery` |
+| 7 | 18 of 74 categories (A class) make up **81%** of revenue | `analysis.category_pareto` |
+
+All metric definitions: [`docs/metrics.md`](docs/metrics.md).
+
 ---
 
 ## Quickstart (Windows / PowerShell, Python 3.13)
@@ -30,10 +44,15 @@ The pipeline rebuilds everything from raw data in about 10 seconds:
 ## Pipeline
 
 ```
-data/raw/*.csv ──► ingest.py ──► clean.py ──► validate.py ──► warehouse.py ──► DuckDB
-  (Kaggle)       explicit dtypes  documented    pandera contracts   Parquet +       staging.*
-                                  rules, flags  + foreign keys      SQL models      (marts next)
+data/raw/*.csv ─► clean.py ─► validate.py ─► DuckDB staging ─► marts (star schema) ─► analysis views
+   (Kaggle)       documented   pandera +        Parquet          sql/01_marts          sql/02_analysis
+                  rules, flags foreign keys                          └──── sql/tests: 8 data tests ────┘
 ```
+
+The SQL layer is documented in [`sql/README.md`](sql/README.md): a star schema plus 8 analysis views
+using window functions (`LAG`, `NTILE`, `DENSE_RANK`, running totals), cohort indexing, and RFM/ABC
+classification. The pipeline fails if any SQL data test (row counts, revenue reconciliation,
+uniqueness) breaks.
 
 ### Data-cleaning decisions
 
@@ -66,8 +85,9 @@ The full audit trail is in [`reports/data_quality_report.md`](reports/data_quali
 ```
 ├── src/ecom/            # pipeline package (config, ingest, clean, validate, warehouse, quality)
 ├── scripts/             # download_data.py
-├── sql/                 # analysis SQL (being migrated to DuckDB marts)
-├── tests/               # pytest: cleaning rules + data contracts
+├── sql/                 # DuckDB: 01_marts (star schema), 02_analysis (views), tests
+├── docs/                # metric definitions
+├── tests/               # pytest: cleaning rules, data contracts, SQL test runner
 ├── reports/             # generated data-quality report, figures
 ├── dashboard/           # Power BI .pbix
 ├── images/              # dashboard screenshots
@@ -79,7 +99,7 @@ The full audit trail is in [`reports/data_quality_report.md`](reports/data_quali
 ## Roadmap
 
 - [x] Reproducible pipeline, data contracts, data-quality report, tests
-- [ ] SQL marts (star schema) + cohort retention, RFM, Pareto, seller scorecard
+- [x] SQL marts (star schema) + cohort retention, RFM, Pareto, seller scorecard, SQL data tests
 - [ ] Analysis notebooks: delivery → satisfaction (with statistical tests), retention, seller and geography
 - [ ] ML: negative-review risk model (LightGBM + SHAP), customer segmentation, demand forecast
 - [ ] Live Streamlit app

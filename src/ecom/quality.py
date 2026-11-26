@@ -62,7 +62,14 @@ def write_report(
     for e in log.entries:
         lines.append(f"| {e.table} | {e.rule} | {e.rows_affected:,} | {e.action} |")
 
-    lines += ["", "## Validation (pandera contracts + referential integrity)", ""]
+    lines += [
+        "",
+        "## Validation",
+        "",
+        "`schema:` pandera contracts · `fk:` referential integrity · "
+        "`sql:` warehouse data tests (`sql/tests/`) · `coverage:` informational",
+        "",
+    ]
     lines += [f"- **{name}**: {status}" for name, status in validation.items()]
     lines.append("")
 

@@ -45,15 +45,16 @@ def run() -> dict[str, pd.DataFrame]:
     log.info("Validating data contracts")
     validation = validate_all(tables)
 
-    log.info("Writing Parquet + building DuckDB warehouse")
+    log.info("Writing Parquet + building DuckDB warehouse (staging -> marts -> analysis)")
     write_parquet(tables)
-    counts = build_warehouse()
-    for name, n in counts.items():
+    build = build_warehouse()
+    for name, n in build.row_counts.items():
         log.info("  %-28s %10s rows", name, f"{n:,}")
+    log.info("SQL data tests: %d passed", len(build.tests))
 
     row_counts = {name: (len(raw[name]), len(df)) for name, df in tables.items()}
     report = REPORTS_DIR / "data_quality_report.md"
-    write_report(report, audit, row_counts, validation)
+    write_report(report, audit, row_counts, validation | build.tests)
     log.info("Data quality report -> %s", report.relative_to(REPORTS_DIR.parent))
     log.info("Done in %.1fs", time.perf_counter() - t0)
     return tables
